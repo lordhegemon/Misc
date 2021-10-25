@@ -1,7 +1,8 @@
 import os
 import copy
-
+import LatLon23 as LatLon
 import openpyxl
+import utm
 import xlwings as xw
 import ModuleAgnostic
 import ModuleAgnostic as ma
@@ -28,95 +29,97 @@ def mainProcess():
     pd.set_option('display.max_columns', None)
     pd.options.mode.chained_assignment = None
     conn, cursor = sqlConnect()
-    # execute1 = ' select APINumber, Wh_sec,[Wh_Twpn],[Wh_Twpd], [Wh_RngN], [Wh_RngD], [Wh_Pm], NorthReference, iFGridConvergence, X, Y, SUBSTRING(tal.API, 0, 11) As API, Wh_Qtr, [Wh_FtNS], [Wh_Ns], [Wh_FtEW], [Wh_EW]'
-    # execute2 = ' from [dbo].[DirectionalSurveyHeader] as dsh'
-    # execute3 = ' join [dbo].[tblAPDLoc] tal on SUBSTRING(tal.API, 0, 11) = dsh.APINumber'
-    # execute4 = " "  # " where Zone_Name = 'Surface Location'"
+    data_lst = parseDatabaseForDataWithSectionsAndSHL(cursor)
+    # transformDatabaseQueryToDataframe(data_lst)
 
-    execute1 = ' select SUBSTRING(API, 0, 11) As API, Wh_sec,[Wh_Twpn],[Wh_Twpd], [Wh_RngN], [Wh_RngD], [Wh_Pm], Wh_X, Wh_Y, [Wh_FtNS], [Wh_Ns], [Wh_FtEW], [Wh_EW]'
-    execute2 = ' from [dbo].[tblAPDLoc]'
-    execute3 = ' where Wh_X IS NOT NULL and Wh_Y IS NOT NULL and Wh_FtNS is not Null and Wh_FtEW is not Null and API is not Null and Wh_Ns is not Null and Wh_EW is not Null and Wh_Sec is not Null and Wh_Twpn is not Null and Wh_Twpd is not Null and Wh_RngD is not Null and Wh_RngN is not Null and Wh_Pm is not Null'
-    execute4 = " "  # " where Zone_Name = 'Surface Location'"
-    data_lst = cursor.execute(execute1 + execute2 + execute3 + execute4)
-    data_lst = fixer(data_lst)
-    data_lst = [list(t) for t in set(tuple(element) for element in data_lst)]
+    # execute1 = ' select SUBSTRING(API, 0, 11) As API, Wh_sec,[Wh_Twpn],[Wh_Twpd], [Wh_RngN], [Wh_RngD], [Wh_Pm], Wh_X, Wh_Y, [Wh_FtNS], [Wh_Ns], [Wh_FtEW], [Wh_EW]'
+    # execute2 = ' from [dbo].[tblAPDLoc]'
+    # execute3 = ' where Wh_X IS NOT NULL and Wh_Y IS NOT NULL and Wh_FtNS is not Null and Wh_FtEW is not Null and API is not Null and Wh_Ns is not Null and Wh_EW is not Null and Wh_Sec is not Null and Wh_Twpn is not Null and Wh_Twpd is not Null and Wh_RngD is not Null and Wh_RngN is not Null and Wh_Pm is not Null'
+    # execute4 = " "  # " where Zone_Name = 'Surface Location'"
+    # data_lst = cursor.execute(execute1 + execute2 + execute3 + execute4)
+    # data_lst = fixer(data_lst)
+    # data_lst = [list(t) for t in set(tuple(element) for element in data_lst)]
 
     folder = os.getcwd()
     folder = os.path.join(folder, 'AnchorPoints')
-    df_all = pd.read_csv(os.path.join(folder, 'PlatGridNumbers.csv'), encoding="ISO-8859-1")
+    # df_all = pd.read_csv(os.path.join(folder, 'PlatGridNumbers.csv'), encoding="ISO-8859-1")
+    excel_parsed_for_good_closure_lst, excel_parsed_df = findDataInExistingExcelWithCorrectClosure(folder)
+    matcher_lst = matcherDF(excel_parsed_df, data_lst)
 
-    df_all_lst = df_all.to_numpy().tolist()
+    # compareConcLists(data_lst, excel_parsed_df)
 
-    df_good = pd.read_excel(os.path.join(folder, 'parsed_closure.xlsx'), dtype='object')
-    # df_good = pd.read_csv(os.path.join(folder, 'parsed_closure.csv'), encoding="ISO-8859-1")
-    # df_good = df_good.to_numpy().tolist()
-    df_noclosure = pd.read_csv(os.path.join(folder, 'PlatPointsNoClosure.csv'), encoding="ISO-8859-1")
-    # df_noclosure = df_noclosure.to_numpy().tolist()
-    df_anchor = pd.read_csv(os.path.join(folder, 'AnchorPoints2.csv'), encoding="ISO-8859-1")
-    # df_anchor = df_anchor.to_numpy().tolist()
-    # mergeBothPages(df_good, df_noclosure)
-
-    # #
-    # compare_df = compareConcLists(df_good, df_all)
-    # lst = matcherDF(df_all, data_lst)
+    # df_all_lst = df_all.to_numpy().tolist()
     #
-    # for j in lst:
-    #     for i in j:
-    #         for k in range(len(i)):
-
-            # new_row = {'Section': i[0],
-            #            'Township': i[1],
-            #            'Township Direction': i[2],
-            #            'Range': i[3],
-            #            'Range Direction': i[4],
-            #            'Baseline': i[5],
-            #            'Side': i[6],
-            #            'Length': i[7],
-            #            'Degrees': i[8],
-            #            'Minutes': i[9],
-            #            'Seconds': i[10],
-            #            'Alignment': i[11],
-            #            'Concatenation': str(i[12]),
-            #            'North Reference': str(i[13]),
-            #            'Northing': i[14],
-            #            'Easting': i[15],
-            #            'API': str(i[16]),
-            #            'Quadrant': str(i[17]),
-            #            'FNSL Value': str(i[18]),
-            #            'FNSL Direction': str(i[19]),
-            #            'FEWL Value': str(i[20]),
-            #            'FEWL Direction': str(i[21])}
-    #         conc = "".join([str(j) for j in i[:7]])
-    #         new_row = {'Section': i[0],
-    #                    'Township': i[1],
-    #                    'Township Direction': i[2],
-    #                    'Range': i[3],
-    #                    'Range Direction': i[4],
-    #                    'Baseline': i[5],
-    #                    'Side': i[6],
-    #                    'Length': i[7],
-    #                    'Degrees': i[8],
-    #                    'Minutes': i[9],
-    #                    'Seconds': i[10],
-    #                    'Alignment': i[11],
-    #                    'Concatenation': i[12],
-    #                    'API': i[13],
-    #                    'Northing': i[14],
-    #                    'Easting': i[15],
-    #                    'FNSL Value': str(i[16]),
-    #                    'FNSL Direction': str(i[17]),
-    #                    'FEWL Value': str(i[18]),
-    #                    'FEWL Direction': str(i[19])}
-
-    #         df2 = df2.append(new_row, ignore_index=True)
-
-    # # df2 = pd.DataFrame(columns=['Section', 'Township', 'Township Direction', 'Range', 'Range Direction', 'Baseline', 'Side', 'Length', 'Degrees', 'Minutes', 'Seconds', 'Alignment', 'North Reference', 'Concatenation', 'API'])
-
-    df_lst = pd.read_excel(os.path.join(folder, 'AnchorPoints.xlsx'), dtype='object')
-    lst = df_lst.to_numpy().tolist()
-    # df2.to_csv('AnchorPoints2.csv')
-    # transformData(lst)
-    lst = transformData2(lst)
+    # df_good = pd.read_excel(os.path.join(folder, 'parsed_closure.xlsx'), dtype='object')
+    # # df_good = pd.read_csv(os.path.join(folder, 'parsed_closure.csv'), encoding="ISO-8859-1")
+    # # df_good = df_good.to_numpy().tolist()
+    # df_noclosure = pd.read_csv(os.path.join(folder, 'PlatPointsNoClosure.csv'), encoding="ISO-8859-1")
+    # # df_noclosure = df_noclosure.to_numpy().tolist()
+    # df_anchor = pd.read_csv(os.path.join(folder, 'AnchorPoints2.csv'), encoding="ISO-8859-1")
+    # # df_anchor = df_anchor.to_numpy().tolist()
+    # # mergeBothPages(df_good, df_noclosure)
+    #
+    # # #
+    # # compare_df = compareConcLists(df_good, df_all)
+    # # lst = matcherDF(df_all, data_lst)
+    # #
+    # # for j in lst:
+    # #     for i in j:
+    # #         for k in range(len(i)):
+    #
+    #         # new_row = {'Section': i[0],
+    #         #            'Township': i[1],
+    #         #            'Township Direction': i[2],
+    #         #            'Range': i[3],
+    #         #            'Range Direction': i[4],
+    #         #            'Baseline': i[5],
+    #         #            'Side': i[6],
+    #         #            'Length': i[7],
+    #         #            'Degrees': i[8],
+    #         #            'Minutes': i[9],
+    #         #            'Seconds': i[10],
+    #         #            'Alignment': i[11],
+    #         #            'Concatenation': str(i[12]),
+    #         #            'North Reference': str(i[13]),
+    #         #            'Northing': i[14],
+    #         #            'Easting': i[15],
+    #         #            'API': str(i[16]),
+    #         #            'Quadrant': str(i[17]),
+    #         #            'FNSL Value': str(i[18]),
+    #         #            'FNSL Direction': str(i[19]),
+    #         #            'FEWL Value': str(i[20]),
+    #         #            'FEWL Direction': str(i[21])}
+    # #         conc = "".join([str(j) for j in i[:7]])
+    # #         new_row = {'Section': i[0],
+    # #                    'Township': i[1],
+    # #                    'Township Direction': i[2],
+    # #                    'Range': i[3],
+    # #                    'Range Direction': i[4],
+    # #                    'Baseline': i[5],
+    # #                    'Side': i[6],
+    # #                    'Length': i[7],
+    # #                    'Degrees': i[8],
+    # #                    'Minutes': i[9],
+    # #                    'Seconds': i[10],
+    # #                    'Alignment': i[11],
+    # #                    'Concatenation': i[12],
+    # #                    'API': i[13],
+    # #                    'Northing': i[14],
+    # #                    'Easting': i[15],
+    # #                    'FNSL Value': str(i[16]),
+    # #                    'FNSL Direction': str(i[17]),
+    # #                    'FEWL Value': str(i[18]),
+    # #                    'FEWL Direction': str(i[19])}
+    #
+    # #         df2 = df2.append(new_row, ignore_index=True)
+    #
+    # # # df2 = pd.DataFrame(columns=['Section', 'Township', 'Township Direction', 'Range', 'Range Direction', 'Baseline', 'Side', 'Length', 'Degrees', 'Minutes', 'Seconds', 'Alignment', 'North Reference', 'Concatenation', 'API'])
+    #
+    # df_lst = pd.read_excel(os.path.join(folder, 'AnchorPoints.xlsx'), dtype='object')
+    # lst = df_lst.to_numpy().tolist()
+    # # df2.to_csv('AnchorPoints2.csv')
+    # # transformData(lst)
+    # lst = transformData2(lst)
 
     # for i in lst:
     #     new_row = {'Section': str(i[0]),
@@ -137,6 +140,88 @@ def mainProcess():
     #     df_base = df_base.append(new_row, ignore_index=True)
     # df_base.to_csv('PlatPointsNoClosure.csv')
 # 162622011
+
+def parseDatabaseForDataWithSectionsAndSHL(cursor):
+    execute1 = ' select Wh_sec,[Wh_Twpn],[Wh_Twpd], [Wh_RngN], [Wh_RngD], [Wh_Pm], NorthReference, iFGridConvergence, X, Y, SUBSTRING(tal.API, 0, 11) As API, [Wh_FtNS], [Wh_Ns], [Wh_FtEW], [Wh_EW]'
+    execute2 = ' from [dbo].[DirectionalSurveyHeader] as dsh'
+    execute3 = ' join [dbo].[tblAPDLoc] tal on SUBSTRING(tal.API, 0, 11) = dsh.APINumber'
+    execute4 = " where Zone_Name = 'Surface Location' and Wh_X IS NOT NULL and Wh_Y IS NOT NULL and Wh_FtNS is not Null and Wh_FtEW is not Null and API is not Null and Wh_Ns is not Null and Wh_EW is not Null and Wh_Sec is not Null and Wh_Twpn is not Null and Wh_Twpd is not Null and Wh_RngD is not Null and Wh_RngN is not Null and Wh_Pm is not Null"
+    # execute1 = ' select SUBSTRING(API, 0, 11) As API, Wh_sec,[Wh_Twpn],[Wh_Twpd], [Wh_RngN], [Wh_RngD], [Wh_Pm], Wh_X, Wh_Y, [Wh_FtNS], [Wh_Ns], [Wh_FtEW], [Wh_EW]'
+    # execute2 = ' from [dbo].[tblAPDLoc]'
+    # execute3 = " where Wh_X IS NOT NULL and Wh_Y IS NOT NULL and Wh_FtNS is not Null and Wh_FtEW is not Null and API is not Null and Wh_Ns is not Null and Wh_EW is not Null and Wh_Sec is not Null and Wh_Twpn is not Null and Wh_Twpd is not Null and Wh_RngD is not Null and Wh_RngN is not Null and Wh_Pm is not Null  and Zone_Name = 'Surface Location'"
+    # execute4 = " "  # " where Zone_Name = 'Surface Location'"
+    data_lst = cursor.execute(execute1 + execute2 + execute3 + execute4)
+    data_lst = fixer(data_lst)
+    data_lst = [list(t) for t in set(tuple(element) for element in data_lst)]
+    return data_lst
+
+def transformDatabaseQueryToDataframe(lst):
+    df_base = pd.DataFrame(columns=['Section', 'Township', 'Township Direction', 'Range', 'Range Direction', 'Baseline', 'Side', 'Length',
+                                'Degrees', 'Minutes', 'Seconds', 'Alignment', 'Concatenation', 'North Reference', 'Northing', 'Easting', 'API',
+                                'Quadrant', 'FNSL Value', 'FNSL Direction', 'FEWL Value', 'FEWL Direction'])
+    for i in lst:
+        new_row = {'Section': int(float(i[0])),
+                   'Township': int(float(i[1])),
+                   'Township Direction': i[2],
+                   'Range': int(float(i[3])),
+                   'Range Direction': i[4],
+                   'Baseline': i[5],
+                   'Side': i[6],
+                   'Length': i[7],
+                   'Degrees': i[8],
+                   'Minutes': i[9],
+                   'Seconds': i[10],
+                   'Alignment': i[11],
+                   'Concatenation': i[12],
+                   'API': i[13],
+                   'Northing': i[14],
+                   'Easting': i[15],
+                   'FNSL Value': str(i[16]),
+                   'FNSL Direction': str(i[17]),
+                   'FEWL Value': str(i[18]),
+                   'FEWL Direction': str(i[19])}
+
+def findDataInExistingExcelWithCorrectClosure(folder):
+    df_all = pd.read_csv(os.path.join(folder, 'PlatGridNumbers.csv'), encoding="ISO-8859-1")
+    lst = df_all.to_numpy().tolist()
+    dir_lst = [['West-Up2', 'West-Up1', 'West-Down1', 'West-Down2'],
+               ['East-Up2', 'East-Up1', 'East-Down1', 'East-Down2'],
+               ['North-Left2', 'North-Left1', 'North-Right1', 'North-Right2'],
+               ['South-Left2', 'South-Left1', 'South-Right1', 'South-Right2']]
+    good_data = []
+    lst = ma.oneToMany(lst, 16)
+    for i in lst:
+        all_data = []
+        data_converted = sideDataToDecimalAzimuth(dir_lst, i)
+        dir_lst_flatten = ma.manyToOne(dir_lst)
+        coordLst = getCoordsLst(data_converted, [0.0, 0.0])
+        eqLst, coordLst, cornersLst = linesMain(coordLst, dir_lst_flatten)
+        # surfaceLoc = i[0][-4:]
+        # surfaceLoc[0], surfaceLoc[2] = int(float(surfaceLoc[0])), int(float(surfaceLoc[2]))
+        for j in coordLst:
+            for k in j:
+                all_data.append(k)
+        start, end = all_data[0], all_data[-1]
+        closure_x, closure_y = round(end[0] - start[0], 4), round(end[1] - start[1], 4)
+        if abs(closure_x) > 5 or abs(closure_y) > 5:
+            counter = 0
+            for r in range(len(data_converted)):
+                # if not checkProximalValues(data_converted[r][1]):
+                #     if data_converted[r][0] > 0:
+                #         print('wrong', data_converted[r])
+                #
+                # if not checkProximalValues(data_converted[r][1]):
+                #     if data_converted[r][0] > 0:
+                #         print('wrong', data_converted[r])
+                # if data_converted[r][0] % 1320 == 0 and data_converted[r][0] > 0:
+                #     print('GLO value', data_converted[r])
+                counter += 1
+        else:
+            for j in i:
+                good_data.append(j)
+    return good_data, df_all
+
+
 
 
 def mergeBothPages(lst_parsed, lst_plats):
@@ -195,8 +280,6 @@ def compareConcLists(df_good, df_all):
     # find = find.to_numpy().tolist()
     # find = ma.oneToMany(find, 16)
     return find
-    # for i in find:
-    #     setDataValues(i)
 
 
 def setDataValues(lst):
@@ -242,9 +325,9 @@ def matcherDF(df, lst):
     found_data = []
     conc_lst = []
     for i in range(len(lst)):
+        lst[i][3], lst[i][5], lst[i][6] = translateDirectionToNumber('township', lst[i][2]), translateDirectionToNumber('rng', lst[i][4]), translateDirectionToNumber('baseline', lst[i][5])
 
-        lst[i][3], lst[i][5], lst[i][6] = translateDirectionToNumber('township', lst[i][3]), translateDirectionToNumber('rng', lst[i][5]), translateDirectionToNumber('baseline', lst[i][6])
-        lesser_conc = str(int(float(lst[i][1]))) + str(int(float(lst[i][2]))) + str(int(float(lst[i][3]))) + str(int(float(lst[i][4]))) + str(int(float(lst[i][5]))) + str(int(float(lst[i][6])))
+        lesser_conc = str(int(float(lst[i][0]))) + str(int(float(lst[i][1]))) + lst[i][2] + str(int(float(lst[i][3]))) + lst[i][4] + lst[i][5]
         re_conc = re.compile(r"^" + re.escape(lesser_conc) + r"\D")
         find = df[(df['Concatenation'].str.contains(re_conc))]
         if len(find) > 0:
@@ -255,8 +338,8 @@ def matcherDF(df, lst):
                     # new_line[j] = new_line[j][:12] + [new_line[j][13]]
                     # new_line[j] = new_line[j] + [lst[i][7]] + lst[i][9:]
                     new_line[j] = new_line[j][:12] + [new_line[j][-1]]
-                    new_line[j] = new_line[j] + [lst[i][0]] + lst[i][7:]
-
+                    new_line[j] = new_line[j] + [lst[i][10]] + lst[i][6:]
+                    print(new_line[j])
                     found_data.append(new_line[j])
                 conc_lst.append(lesser_conc)
     found_data = ma.oneToMany(found_data, 16)
@@ -278,17 +361,13 @@ def transformData(lst):
         surfaceLoc = i[0][-4:]
         surfaceLoc[0], surfaceLoc[2] = int(float(surfaceLoc[0])), int(float(surfaceLoc[2]))
         surfaceCoord, xMin, xMax, yMin, yMax = GatherPlatDataSet.getQuad(coordLst, surfaceLoc)
-        print('surfaceCoord', surfaceCoord)
+
         for j in coordLst:
             for k in j:
                 all_data.append(k)
         start, end = all_data[0], all_data[-1]
         closure_x, closure_y = round(end[0] - start[0], 4), round(end[1] - start[1], 4)
         if abs(closure_x) > 5 or abs(closure_y) > 5:
-            # print("\n____________________________________________________")
-            # print(i[0][16], i[0][12])
-            # print(i[0][0], i[0][1], translateNumberToDirection('township', str(int(float(i[0][2])))), i[0][3], translateNumberToDirection('rng', str(int(float(i[0][4])))), translateNumberToDirection('baseline', str(int(float(i[0][5])))), i[0][13])
-            # print(closure_x, closure_y, surfaceCoord)
             counter = 0
             for r in range(len(data_converted)):
                 if not checkProximalValues(data_converted[r][1]):
@@ -304,7 +383,7 @@ def transformData(lst):
         else:
             for j in i:
                 good_data.append(j)
-    # ModuleAgnostic.printLine(good_data)
+
 
     #     surfaceCoord = [i * 0.3048 for i in surfaceCoord]
     #     all_data = [[i[0] * 0.3048, i[1] * 0.3048] for i in all_data]
@@ -334,7 +413,12 @@ def transformData2(lst):
     #             lst[i][k][16] = 'NULL'
 
     coord_data_lst = []
+    shl_coords = []
     for i in lst:
+        # if i[0][0] == 8 and i[0][1] == 3 and i[0][2] == 2 and i[0][3] == 1 and i[0][4] == 1:
+
+        shl_coords.append([i[0][14], i[0][15]])
+        coord_data_lst.append([])
         all_data = []
         data_converted = sideDataToDecimalAzimuth(dir_lst, i)
         dir_lst_flatten = ma.manyToOne(dir_lst)
@@ -343,16 +427,17 @@ def transformData2(lst):
         surfaceLoc = i[0][-4:]
         surfaceCoord, xMin, xMax, yMin, yMax = GatherPlatDataSet.getQuad(coordLst, surfaceLoc)
         change_x, change_y = abs(i[0][14] - surfaceCoord[0]), abs(i[0][15] - surfaceCoord[1])
-        print(i[0])
+
 
         counter= 0
+
         for j in coordLst:
             for k in j:
-                # x_diff, y_diff = abs(surfaceCoord[0]-
-                print(k[0] + change_x, k[1] + change_y)
-                coord_data_lst.append([i[0][:6] + [k[0] + change_x, k[1] + change_y]])
+                coord_data_lst[-1].append([i[0][:6] + [k[0] + change_x, k[1] + change_y]])
+
                 all_data.append(k)
                 counter += 1
+        coord_data_lst[-1] = [k[0] for k in coord_data_lst[-1]]
         start, end = all_data[0], all_data[-1]
         closure_x, closure_y = round(end[0] - start[0], 4), round(end[1] - start[1], 4)
         if abs(closure_x) > 5 or abs(closure_y) > 5 or i[0][-1] == 43000000000000.0:
@@ -372,14 +457,29 @@ def transformData2(lst):
         else:
             for j in i:
                 good_data.append(j)
+    for i in coord_data_lst:
+        if i[0][0] == 8 and i[0][1] == 3 and i[0][2] == 2 and i[0][3] == 1 and i[0][4] == 1:
+            for j in i:
+                deg = list(utm.to_latlon(j[6], j[7], 12, 'U'))
+
+                dec = LatLon.LatLon(deg[0], deg[1])
+                # print(dec.to_string('d% %m% %S% %H'))
+
     zp = ZoomPan()
-    coord_data_lst = [i[0] for i in coord_data_lst]
-    all_x = [i[6] for i in coord_data_lst]
-    all_y = [i[7] for i in coord_data_lst]
     fig, ax = plt.subplots()
-    ax = plt.axes(projection=None)
-    ax.scatter(all_x, all_y, c='red', s = 1)
     figZoom, figPan = zp.zoom_factory(ax, base_scale=1.1), zp.pan_factory(ax)
+    # coord_data_lst = [i[0] for i in coord_data_lst]
+
+    all_x = [j[0] for j in shl_coords]
+    all_y = [j[1] for j in shl_coords]
+    ax.scatter(all_x, all_y, c='red')
+    for i in coord_data_lst:
+        all_x = [j[6] for j in i]
+        all_y = [j[7] for j in i]
+    #
+    #     # ax = plt.axes(projection=None)
+        ax.plot(all_x, all_y, c='black')
+
     # ax.scatter([surfaceCoord[0]], [surfaceCoord[1]], c='black')
     plt.show()
 
@@ -422,6 +522,15 @@ def sideDataToDecimalAzimuth(dir_lst, data):
 
     return data_converted
 
+def sideDataToDecimalAzimuth2(dir_lst, data):
+    dir_lst_flatten = ma.manyToOne(dir_lst)
+
+    new_data = [i[7:12] for i in data]
+    new_data = [[float(j) for j in i] for i in new_data]
+    new_data = [[data[i][6]] + new_data[i] for i in range(len(new_data))]
+    data_converted = convertDirections(new_data, dir_lst_flatten)
+
+    return data_converted
 
 def gatherValData(data, dir_lst):
     dir_lst_flatten = ma.manyToOne(dir_lst)
