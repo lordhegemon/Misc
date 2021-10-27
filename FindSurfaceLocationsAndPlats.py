@@ -42,9 +42,23 @@ def mainProcess():
 
     folder = os.getcwd()
     folder = os.path.join(folder, 'AnchorPoints')
-    # df_all = pd.read_csv(os.path.join(folder, 'PlatGridNumbers.csv'), encoding="ISO-8859-1")
+    lst_parsed_df = pd.read_excel(os.path.join(folder, 'parsed_closure.xlsx'), dtype='object')
+
+    # lst_parsed_lst = lst_parsed_df.to_numpy().tolist()
+
     excel_parsed_for_good_closure_lst, excel_parsed_df = findDataInExistingExcelWithCorrectClosure(folder)
-    matcher_lst = matcherDF(excel_parsed_df, data_lst)
+    matcher_lst_1 = matcherDF1(excel_parsed_df, data_lst)
+
+
+    df_noclosure, df_base_lst = transformDatabaseQueryToDataframe(matcher_lst_1)
+
+
+    matcher_lst_2 = matcherDF2(lst_parsed_df, data_lst)
+    df_parsed_fin, df_parsed_fin_lst = transformDatabaseQueryToDataframe(matcher_lst_2)
+
+    df_merged, df_merged_lst = mergeBothPages(df_base_lst, df_parsed_fin_lst)
+    lst = transformData2(df_base_lst)
+
 
     # compareConcLists(data_lst, excel_parsed_df)
 
@@ -57,8 +71,8 @@ def mainProcess():
     # # df_noclosure = df_noclosure.to_numpy().tolist()
     # df_anchor = pd.read_csv(os.path.join(folder, 'AnchorPoints2.csv'), encoding="ISO-8859-1")
     # # df_anchor = df_anchor.to_numpy().tolist()
-    # # mergeBothPages(df_good, df_noclosure)
-    #
+
+
     # # #
     # # compare_df = compareConcLists(df_good, df_all)
     # # lst = matcherDF(df_all, data_lst)
@@ -155,32 +169,6 @@ def parseDatabaseForDataWithSectionsAndSHL(cursor):
     data_lst = [list(t) for t in set(tuple(element) for element in data_lst)]
     return data_lst
 
-def transformDatabaseQueryToDataframe(lst):
-    df_base = pd.DataFrame(columns=['Section', 'Township', 'Township Direction', 'Range', 'Range Direction', 'Baseline', 'Side', 'Length',
-                                'Degrees', 'Minutes', 'Seconds', 'Alignment', 'Concatenation', 'North Reference', 'Northing', 'Easting', 'API',
-                                'Quadrant', 'FNSL Value', 'FNSL Direction', 'FEWL Value', 'FEWL Direction'])
-    for i in lst:
-        new_row = {'Section': int(float(i[0])),
-                   'Township': int(float(i[1])),
-                   'Township Direction': i[2],
-                   'Range': int(float(i[3])),
-                   'Range Direction': i[4],
-                   'Baseline': i[5],
-                   'Side': i[6],
-                   'Length': i[7],
-                   'Degrees': i[8],
-                   'Minutes': i[9],
-                   'Seconds': i[10],
-                   'Alignment': i[11],
-                   'Concatenation': i[12],
-                   'API': i[13],
-                   'Northing': i[14],
-                   'Easting': i[15],
-                   'FNSL Value': str(i[16]),
-                   'FNSL Direction': str(i[17]),
-                   'FEWL Value': str(i[18]),
-                   'FEWL Direction': str(i[19])}
-
 def findDataInExistingExcelWithCorrectClosure(folder):
     df_all = pd.read_csv(os.path.join(folder, 'PlatGridNumbers.csv'), encoding="ISO-8859-1")
     lst = df_all.to_numpy().tolist()
@@ -191,6 +179,7 @@ def findDataInExistingExcelWithCorrectClosure(folder):
     good_data = []
     lst = ma.oneToMany(lst, 16)
     for i in lst:
+
         all_data = []
         data_converted = sideDataToDecimalAzimuth(dir_lst, i)
         dir_lst_flatten = ma.manyToOne(dir_lst)
@@ -206,59 +195,148 @@ def findDataInExistingExcelWithCorrectClosure(folder):
         if abs(closure_x) > 5 or abs(closure_y) > 5:
             counter = 0
             for r in range(len(data_converted)):
-                # if not checkProximalValues(data_converted[r][1]):
-                #     if data_converted[r][0] > 0:
-                #         print('wrong', data_converted[r])
-                #
-                # if not checkProximalValues(data_converted[r][1]):
-                #     if data_converted[r][0] > 0:
-                #         print('wrong', data_converted[r])
-                # if data_converted[r][0] % 1320 == 0 and data_converted[r][0] > 0:
-                #     print('GLO value', data_converted[r])
                 counter += 1
         else:
             for j in i:
                 good_data.append(j)
     return good_data, df_all
 
+def matcherDF1(df, lst):
+    found_data = []
+    conc_lst = []
+    for i in range(len(lst)):
+        lst[i][2], lst[i][4], lst[i][5] = translateDirectionToNumber('township', lst[i][2]), translateDirectionToNumber('rng', lst[i][4]), translateDirectionToNumber('baseline', lst[i][5])
+        lst[i][6] = lst[i][6][0]
+        if lst[i][7] == 'None':
+            lst[i][7] = 0
+        lesser_conc = str(int(float(lst[i][0]))) + str(int(float(lst[i][1]))) + lst[i][2] + str(int(float(lst[i][3]))) + lst[i][4] + lst[i][5]
+        re_conc = re.compile(r"^" + re.escape(lesser_conc) + r"\D")
+        find = df[(df['Concatenation'].str.contains(re_conc))]
+        if len(find) > 0:
+            new_line = find.to_numpy().tolist()
+            if lesser_conc not in conc_lst:
+                for j in range(len(new_line)):
+                    new_line[j] = new_line[j][:12] + [new_line[j][-1]]
+                    new_line[j] = new_line[j] + [lst[i][10]] + lst[i][6:10] + lst[i][11:]
+
+                    found_data.append(new_line[j])
+                conc_lst.append(lesser_conc)
 
 
+    found_data = ma.oneToMany(found_data, 16)
+
+    return found_data
+
+def matcherDF2(df, lst):
+    found_data = []
+    conc_lst = []
+    for i in range(len(lst)):
+
+        lst[i][2], lst[i][4], lst[i][5] = translateDirectionToNumber('township', lst[i][2]), translateDirectionToNumber('rng', lst[i][4]), translateDirectionToNumber('baseline', lst[i][5])
+        lst[i][6] = lst[i][6][0]
+        if lst[i][5] == 'None':
+            lst[i][5] = 0
+        lesser_conc = str(int(float(lst[i][0]))) + str(int(float(lst[i][1]))) + lst[i][2] + str(int(float(lst[i][3]))) + lst[i][4] + lst[i][5]
+        re_conc = re.compile(r"^" + re.escape(lesser_conc) + r"\D")
+        find = df[(df['Concatenation'].str.contains(re_conc))]
+        if len(find) > 0:
+            new_line = find.to_numpy().tolist()
+            if lesser_conc not in conc_lst:
+                for j in range(len(new_line)):
+                    new_line[j] = new_line[j][:12] + [str(new_line[j][13])] + [str(new_line[j][-1])[:11]]
+                    new_line[j] = new_line[j] + lst[i][6:10] + lst[i][11:]
+                    found_data.append(new_line[j])
+                conc_lst.append(lesser_conc)
+    found_data = ma.oneToMany(found_data, 16)
+
+    return found_data
+
+
+def transformDatabaseQueryToDataframe(lst):
+    df_base = pd.DataFrame(columns=['Section', 'Township', 'Township Direction', 'Range', 'Range Direction', 'Baseline', 'Side', 'Length',
+                                'Degrees', 'Minutes', 'Seconds', 'Alignment', 'Concatenation','API','North Reference', 'Grid Convergence', 'Northing', 'Easting',
+                                'FNSL Value', 'FNSL Direction', 'FEWL Value', 'FEWL Direction'])
+    for j in lst:
+        for i in j:
+            if i[15] == 'None':
+                i[15] = 0
+            new_row = {'Section': int(float(i[0])),
+                       'Township': int(float(i[1])),
+                       'Township Direction': i[2],
+                       'Range': int(float(i[3])),
+                       'Range Direction': i[4],
+                       'Baseline': i[5],
+                       'Side': i[6],
+                       'Length': i[7],
+                       'Degrees': i[8],
+                       'Minutes': i[9],
+                       'Seconds': i[10],
+                       'Alignment': i[11],
+                       'Concatenation': i[12],
+                       'API': i[13],
+                       'North Reference': i[14],
+                       'Grid Convergence': float(i[15]),
+                       'Northing': float(i[16]),
+                       'Easting': float(i[17]),
+                       'FNSL Value': float(i[18]),
+                       'FNSL Direction': str(i[19]),
+                       'FEWL Value': float(i[20]),
+                       'FEWL Direction': str(i[21])}
+
+            df_base = df_base.append(new_row, ignore_index=True)
+    df_base.to_csv('PlatPointsNoClosure.csv')
+    df_base_lst = df_base.to_numpy().tolist()
+
+    return df_base, df_base_lst
 
 def mergeBothPages(lst_parsed, lst_plats):
     df_base = pd.DataFrame(columns=['Section', 'Township', 'Township Direction', 'Range', 'Range Direction', 'Baseline', 'Side', 'Length',
-                                    'Degrees', 'Minutes', 'Seconds', 'Alignment', 'North Reference', 'Concatenation'])
-    lst_parsed = lst_parsed.to_numpy().tolist()
-    lst_plats = lst_plats.to_numpy().tolist()
+                                'Degrees', 'Minutes', 'Seconds', 'Alignment', 'Concatenation','API','North Reference', 'Grid Convergence', 'Northing', 'Easting',
+                                'FNSL Value', 'FNSL Direction', 'FEWL Value', 'FEWL Direction'])
+
     conc_lst = []
     merged_lst = []
+    lst_parsed = ma.oneToMany(lst_parsed, 16)
+    lst_plats = ma.oneToMany(lst_plats, 16)
     for i in lst_parsed:
-        if i[13] not in conc_lst:
-            conc_lst.append(i[13])
+        if i[0][12] not in conc_lst:
+            conc_lst.append(i[0][12])
             merged_lst.append(i)
     for i in lst_plats:
-        if i[13] not in conc_lst:
-            conc_lst.append(i[13])
+        if i[0][12] not in conc_lst:
+            conc_lst.append(i[0][12])
             merged_lst.append(i)
 
-    for i in merged_lst:
-        new_row = {'Section': str(i[0]),
-                   'Township': str(i[1]),
-                   'Township Direction': str(i[2]),
-                   'Range': str(i[3]),
-                   'Range Direction': str(i[4]),
-                   'Baseline': str(i[5]),
-                   'Side': str(i[6]),
-                   'Length': str(i[7]),
-                   'Degrees': str(i[8]),
-                   'Minutes': str(i[9]),
-                   'Seconds': str(i[10]),
-                   'Alignment': str(i[11]),
-                   'North Reference': str(i[12]),
-                   'Concatenation': str(i[13])}
+    for k in merged_lst:
+        for i in k:
+            new_row = {'Section': i[0],
+                       'Township': int(float(i[1])),
+                       'Township Direction': i[2],
+                       'Range': int(float(i[3])),
+                       'Range Direction': i[4],
+                       'Baseline': i[5],
+                       'Side': i[6],
+                       'Length': i[7],
+                       'Degrees': i[8],
+                       'Minutes': i[9],
+                       'Seconds': i[10],
+                       'Alignment': i[11],
+                       'Concatenation': i[12],
+                       'API': i[13],
+                       'North Reference': i[14],
+                       'Grid Convergence': i[15],
+                       'Northing': i[16],
+                       'Easting': i[17],
+                       'FNSL Value': i[18],
+                       'FNSL Direction': str(i[19]),
+                       'FEWL Value': i[20],
+                       'FEWL Direction': str(i[21])}
 
-        df_base = df_base.append(new_row, ignore_index=True)
+            df_base = df_base.append(new_row, ignore_index=True)
+    # df_base.to_csv('PlatGridNumbers.csv')
+    df_base_lst = df_base.to_numpy().tolist()
 
-    df_base.to_csv('PlatGridNumbers.csv')
+    return df_base, df_base_lst
 
 
 
@@ -321,29 +399,6 @@ def setDataValues(lst):
     #                 counter += 1
 
 
-def matcherDF(df, lst):
-    found_data = []
-    conc_lst = []
-    for i in range(len(lst)):
-        lst[i][3], lst[i][5], lst[i][6] = translateDirectionToNumber('township', lst[i][2]), translateDirectionToNumber('rng', lst[i][4]), translateDirectionToNumber('baseline', lst[i][5])
-
-        lesser_conc = str(int(float(lst[i][0]))) + str(int(float(lst[i][1]))) + lst[i][2] + str(int(float(lst[i][3]))) + lst[i][4] + lst[i][5]
-        re_conc = re.compile(r"^" + re.escape(lesser_conc) + r"\D")
-        find = df[(df['Concatenation'].str.contains(re_conc))]
-        if len(find) > 0:
-            new_line = find.to_numpy().tolist()
-            if lesser_conc not in conc_lst:
-                for j in range(len(new_line)):
-
-                    # new_line[j] = new_line[j][:12] + [new_line[j][13]]
-                    # new_line[j] = new_line[j] + [lst[i][7]] + lst[i][9:]
-                    new_line[j] = new_line[j][:12] + [new_line[j][-1]]
-                    new_line[j] = new_line[j] + [lst[i][10]] + lst[i][6:]
-                    print(new_line[j])
-                    found_data.append(new_line[j])
-                conc_lst.append(lesser_conc)
-    found_data = ma.oneToMany(found_data, 16)
-    return found_data
 
 
 def transformData(lst):
@@ -385,18 +440,6 @@ def transformData(lst):
                 good_data.append(j)
 
 
-    #     surfaceCoord = [i * 0.3048 for i in surfaceCoord]
-    #     all_data = [[i[0] * 0.3048, i[1] * 0.3048] for i in all_data]
-    #     x1, y1 = [p[0] for p in all_data], [p[1] for p in all_data]
-    #
-    #     fig, ax = plt.subplots()
-    #     ax = plt.axes(projection=None)
-    #     # ax.scatter(x1, y1, c='red')
-    #     ax.plot(x1, y1, c='red')
-    #     ax.scatter([surfaceCoord[0]], [surfaceCoord[1]], c='black')
-    #     plt.show()
-
-
 def transformData2(lst):
     dir_lst = [['West-Up2', 'West-Up1', 'West-Down1', 'West-Down2'],
                ['East-Up2', 'East-Up1', 'East-Down1', 'East-Down2'],
@@ -405,20 +448,14 @@ def transformData2(lst):
     good_data = []
 
     lst = ma.oneToMany(lst, 16)
-    # for i in range(len(lst)):
-    #     for k in range(len(lst[i])):
-    #         try:
-    #             lst[i][k][16] = int(float(str(lst[i][k][16])[:11]))
-    #         except ValueError:
-    #             lst[i][k][16] = 'NULL'
+
 
     coord_data_lst = []
+    coord_data_lst_grid = []
     shl_coords = []
     for i in lst:
-        # if i[0][0] == 8 and i[0][1] == 3 and i[0][2] == 2 and i[0][3] == 1 and i[0][4] == 1:
-
-        shl_coords.append([i[0][14], i[0][15]])
         coord_data_lst.append([])
+        coord_data_lst_grid.append([])
         all_data = []
         data_converted = sideDataToDecimalAzimuth(dir_lst, i)
         dir_lst_flatten = ma.manyToOne(dir_lst)
@@ -426,76 +463,66 @@ def transformData2(lst):
         eqLst, coordLst, cornersLst = linesMain(coordLst, dir_lst_flatten)
         surfaceLoc = i[0][-4:]
         surfaceCoord, xMin, xMax, yMin, yMax = GatherPlatDataSet.getQuad(coordLst, surfaceLoc)
-        change_x, change_y = abs(i[0][14] - surfaceCoord[0]), abs(i[0][15] - surfaceCoord[1])
+        surfaceCoord = [i * 0.3048 for i in surfaceCoord]
+        shl_coords.append([i[0][16], i[0][17], i[0][13]])
+        change_x, change_y = abs(i[0][16] - surfaceCoord[0]), abs(i[0][17] - surfaceCoord[1])
 
 
         counter= 0
-
-        for j in coordLst:
-            for k in j:
-                coord_data_lst[-1].append([i[0][:6] + [k[0] + change_x, k[1] + change_y]])
-
-                all_data.append(k)
-                counter += 1
-        coord_data_lst[-1] = [k[0] for k in coord_data_lst[-1]]
-        start, end = all_data[0], all_data[-1]
-        closure_x, closure_y = round(end[0] - start[0], 4), round(end[1] - start[1], 4)
-        if abs(closure_x) > 5 or abs(closure_y) > 5 or i[0][-1] == 43000000000000.0:
-
-            counter = 0
-            # for r in range(len(data_converted)):
-            #     if not checkProximalValues(data_converted[r][1]):
-            #         if data_converted[r][0] > 0:
-            #             print('wrong', data_converted[r])
-            #
-            #     if not checkProximalValues(data_converted[r][1]):
-            #         if data_converted[r][0] > 0:
-            #             print('wrong', data_converted[r])
-            #     if data_converted[r][0] % 1320 == 0 and data_converted[r][0] > 0:
-            #         print('GLO value', data_converted[r])
-            #     counter += 1
+        if i[0][14].lower() == 't':
+            for j in coordLst:
+                for k in j:
+                    coord_data_lst[-1].append([i[0][:6] + [k[0]*0.3048 + change_x, k[1]*0.3048 + change_y] + [i[0][13]]])
+                    all_data.append(k)
+                    counter += 1
+            coord_data_lst[-1] = [k[0] for k in coord_data_lst[-1]]
         else:
-            for j in i:
-                good_data.append(j)
-    for i in coord_data_lst:
-        if i[0][0] == 8 and i[0][1] == 3 and i[0][2] == 2 and i[0][3] == 1 and i[0][4] == 1:
-            for j in i:
-                deg = list(utm.to_latlon(j[6], j[7], 12, 'U'))
+            for j in coordLst:
+                for k in j:
+                    coord_data_lst_grid[-1].append([i[0][:6] + [k[0]*0.3048 + change_x, k[1]*0.3048 + change_y] + [i[0][13]]])
+                    all_data.append(k)
+                    counter += 1
+            coord_data_lst_grid[-1] = [k[0] for k in coord_data_lst_grid[-1]]
 
-                dec = LatLon.LatLon(deg[0], deg[1])
-                # print(dec.to_string('d% %m% %S% %H'))
+    coord_data_lst = [i for i in coord_data_lst if i]
+    coord_data_lst_grid = [i for i in coord_data_lst_grid if i]
+    for i in range(len(coord_data_lst)):
+        start, end = coord_data_lst[i][0][6:8], coord_data_lst[i][-1][6:8]
+        closure_x, closure_y = round(end[0] - start[0], 4), round(end[1] - start[1], 4)
+        if abs(closure_x) > 1 or abs(closure_y) > 1:
+            coord_data_lst[i][-1] = coord_data_lst[i][0]
+    for i in range(len(coord_data_lst_grid)):
+        start, end = coord_data_lst_grid[i][0][6:8], coord_data_lst_grid[i][-1][6:8]
+        closure_x, closure_y = round(end[0] - start[0], 4), round(end[1] - start[1], 4)
+        if abs(closure_x) > 1 or abs(closure_y) > 1:
+            coord_data_lst_grid[i][-1] = coord_data_lst_grid[i][0]
 
     zp = ZoomPan()
     fig, ax = plt.subplots()
     figZoom, figPan = zp.zoom_factory(ax, base_scale=1.1), zp.pan_factory(ax)
-    # coord_data_lst = [i[0] for i in coord_data_lst]
 
+    shl_coords = [list(t) for t in set(tuple(element) for element in shl_coords)]
     all_x = [j[0] for j in shl_coords]
     all_y = [j[1] for j in shl_coords]
+    all_text = [j[2] for j in shl_coords]
     ax.scatter(all_x, all_y, c='red')
+
+    # for j in range(len(shl_coords)):
+    #     ax.text(all_x[j], all_y[j] + 200, all_text[j])
     for i in coord_data_lst:
         all_x = [j[6] for j in i]
         all_y = [j[7] for j in i]
-    #
-    #     # ax = plt.axes(projection=None)
-        ax.plot(all_x, all_y, c='black')
+        ax.plot(all_x, all_y, c='red')
+
+    # for i in coord_data_lst_grid:
+    #     all_x = [j[6] for j in i]
+    #     all_y = [j[7] for j in i]
+    #     ax.plot(all_x, all_y, c='blue')
 
     # ax.scatter([surfaceCoord[0]], [surfaceCoord[1]], c='black')
     plt.show()
 
     return good_data
-
-
-    #     surfaceCoord = [i * 0.3048 for i in surfaceCoord]
-    #     all_data = [[i[0] * 0.3048, i[1] * 0.3048] for i in all_data]
-    #     x1, y1 = [p[0] for p in all_data], [p[1] for p in all_data]
-    #
-    #     fig, ax = plt.subplots()
-    #     ax = plt.axes(projection=None)
-    #     # ax.scatter(x1, y1, c='red')
-    #     ax.plot(x1, y1, c='red')
-    #     ax.scatter([surfaceCoord[0]], [surfaceCoord[1]], c='black')
-    #     plt.show()
 
 
 def checkProximalValues(data):
@@ -515,10 +542,26 @@ def checkProximalValues(data):
 
 def sideDataToDecimalAzimuth(dir_lst, data):
     dir_lst_flatten = ma.manyToOne(dir_lst)
-    new_data = [i[7:12] for i in data]
-    new_data = [[float(j) for j in i] for i in new_data]
-    new_data = [[data[i][6]] + new_data[i] for i in range(len(new_data))]
-    data_converted = convertDirections(new_data, dir_lst_flatten)
+
+    if len(data[0]) == 14:
+        new_data = [i[7:12] for i in data]
+        new_data = [[float(j) for j in i] for i in new_data]
+        new_data = [[data[i][6]] + new_data[i] for i in range(len(new_data))]
+        data_converted = convertDirections(new_data, dir_lst_flatten)
+    elif len(data[0]) == 22 and data[0][14] == 'T':
+        new_data = [i[7:12] for i in data]
+        new_data = [[float(j) for j in i] for i in new_data]
+        new_data = [[data[i][6]] + new_data[i] for i in range(len(new_data))]
+        data_converted = convertDirections(new_data, dir_lst_flatten)
+
+    else:
+        new_data = [i[7:12] for i in data]
+        new_data = [[float(j) for j in i] for i in new_data]
+        for r in range(len(new_data)):
+            new_data[r] = new_data[r] + data[r][14:16]
+        new_data = [[data[i][6]] + new_data[i] for i in range(len(new_data))]
+
+        data_converted = convertDirections2(new_data, dir_lst_flatten)
 
     return data_converted
 
@@ -537,12 +580,11 @@ def gatherValData(data, dir_lst):
     new_data = [i[7:12] for i in data]
     new_data = [[float(j) for j in i] for i in new_data]
     new_data = [[data[i][6]] + new_data[i] for i in range(len(new_data))]
-    data_converted = convertDirections(new_data, dir_lst_flatten)
+    data_converted = convertDirections2(new_data, dir_lst_flatten)
     return dir_lst_flatten, new_data
 
 
 def convertDirections(new_data, dir_lst):
-    # dir_lst_flatten = ma.manyToOne(dir_lst)
     data_converted = []
     for i in range(len(dir_lst)):
         side, deg, min, sec, dir_val = new_data[i][1], new_data[i][2], new_data[i][3], new_data[i][4], new_data[i][5]
@@ -564,6 +606,28 @@ def convertDirections(new_data, dir_lst):
                       data_converted[0], data_converted[1], data_converted[2], data_converted[3]]
     return data_converted
 
+def convertDirections2(new_data, dir_lst):
+    data_converted = []
+    for i in range(len(dir_lst)):
+        side, deg, min, sec, dir_val = new_data[i][1], new_data[i][2], new_data[i][3], new_data[i][4], new_data[i][5]
+        if i > 8:
+            if dir_val == 4 or dir_val == 1:
+                decVal = 180 - (deg + min / 60 + sec / 3600)
+            else:
+                decVal = (deg + min / 60 + sec / 3600)
+        else:
+            if dir_val == 4 or dir_val == 1:
+                decVal = 180 - (deg + min / 60 + sec / 3600)
+            else:
+                decVal = 180 + (deg + min / 60 + sec / 3600)
+        decVal = decVal + new_data[i][-1]
+        data_converted.append([side, decVal])
+
+    data_converted = [data_converted[12], data_converted[13], data_converted[14], data_converted[15],
+                      data_converted[7], data_converted[6], data_converted[5], data_converted[4],
+                      data_converted[11], data_converted[10], data_converted[9], data_converted[8],
+                      data_converted[0], data_converted[1], data_converted[2], data_converted[3]]
+    return data_converted
 
 def equationSolveForEndPoint(alpha, h, coord):
     if alpha < 90:
@@ -633,16 +697,22 @@ def translateDirectionToNumber(variable, val):
             return '2'
         elif val == 'E':
             return '1'
+        else:
+            return val
     elif variable == 'township':
         if val == 'S':
             return '2'
         elif val == 'N':
             return '1'
+        else:
+            return val
     elif variable == 'baseline':
         if val == 'U':
             return '2'
         elif val == 'S':
             return '1'
+        else:
+            return val
     elif variable == 'alignment':
         if val == 'SE':
             return '1'
@@ -652,6 +722,8 @@ def translateDirectionToNumber(variable, val):
             return '3'
         elif val == 'NW':
             return '4'
+        else:
+            return val
 
 
 def translateNumberToDirection(variable, val):

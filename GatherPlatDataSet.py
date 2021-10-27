@@ -358,6 +358,7 @@ def getQuad(coordLst, surfaceLoc):
     if horDirVal == 0:
         horDirVal = 1
     quadVert, quadHor, lineVert, lineHor, lineVertOtherValues, lineHorOtherValues = defineEWNSSideID(vertDirVal, horDirVal, coordLst)
+
     yMin, yMax = min(lineHor), max(lineHor)
     xMin, xMax = min(lineVert), max(lineVert)
 
@@ -365,8 +366,7 @@ def getQuad(coordLst, surfaceLoc):
 
     mX, bXNeg, bXPos = testSolvingStuffX(adjPointsHor, vertDir)
     mY, bYNeg, bYPos = testSolvingStuffY(adjPointsVert, horDir)
-    # print('quadHor', quadHor, hor, mX, bXNeg, bXPos)
-    # print('quadVert', quadVert, vert, mY, bYNeg, bYPos)
+
     surfaceCoord = findAllTheIntersectionsBetweenLines(mX, mY, bXNeg, bXPos, bYNeg, bYPos, vertDirVal, vertDir, horDirVal, horDir, lineHor, lineVert, coordLst)
 
     return surfaceCoord, xMin, xMax, yMin, yMax
@@ -412,6 +412,7 @@ def find_proximalSegments(midPoint_coord_lst, quadVert, quadHor, s_loc):
 
 
 def findLineSegmentID(lineVert, lineHor, x, y, horDirVal, vertDirVal, xMax, yMax, lineVertOtherValues, lineHorOtherValues):
+
     adjPointsVert = []
     adjPointsHor = []
     vert = -1
@@ -424,31 +425,25 @@ def findLineSegmentID(lineVert, lineHor, x, y, horDirVal, vertDirVal, xMax, yMax
 
     lineVert2 = list(lineVert)
     lineVert2.append(y)
-
     if y < min(lineVert):
         y = min(lineVert) + 1
     if x < min(lineHor):
         x = min(lineHor) + 1
 
     for i in range(4):
-        # print(lineHor[i], x, lineHor[i + 1], lineHor[i] < x < lineHor[i + 1])
-        # print(lineHor[i], x, lineHor[i + 1], lineHor[i] > x > lineHor[i + 1])
         if lineHor[i] < x < lineHor[i + 1] or lineHor[i] > x > lineHor[i + 1]:
             if lineHor[i] != lineHor[i + 1]:
                 adjPointsHor.append([lineHor[i], lineHorOtherValues[i]])
                 adjPointsHor.append([lineHor[i + 1], lineHorOtherValues[i + 1]])
                 hor = i
-                # print('hor', adjPointsHor, hor)
+
 
         if lineVert[i] <= y <= lineVert[i + 1] or lineVert[i] >= y >= lineVert[i + 1]:
-            # print("\n")
-
             if lineVert[i] != lineVert[i + 1]:
-
                 adjPointsVert.append([lineVertOtherValues[i], lineVert[i]])
                 adjPointsVert.append([lineVertOtherValues[i + 1], lineVert[i + 1]])
                 vert = i
-                # print('vert', adjPointsVert, vert)
+
 
     return vert, hor, adjPointsVert, adjPointsHor
 
