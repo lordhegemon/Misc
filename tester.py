@@ -1,46 +1,16 @@
-import sys
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
+import re
+import openpyxl
+import os
+import pandas as pd
+import numpy as np
+from glob import glob
+
+def parseAllFoldersForString(new_path, searcher_var):
+    files = glob(new_path + '/**/', recursive=True)
+    for i in files:
+        for j in os.listdir(i):
+            if searcher_var in j:
+                print(j)
 
 
-class Radiodemo(QWidget):
-    def __init__(self, parent=None):
-        super(Radiodemo, self).__init__(parent)
-
-        layout = QHBoxLayout()
-        self.b1 = QRadioButton("Button1")
-        self.b1.setChecked(True)
-        self.b1.toggled.connect(lambda: self.btnstate(self.b1))
-        layout.addWidget(self.b1)
-
-        self.b2 = QRadioButton("Button2")
-        self.b2.toggled.connect(lambda: self.btnstate(self.b2))
-
-        layout.addWidget(self.b2)
-        self.setLayout(layout)
-        self.setWindowTitle("RadioButton demo")
-
-    def btnstate(self, b):
-        if b.text() == "Button1":
-            if b.isChecked() == True:
-                print(b.text() + " is selected")
-            else:
-                print(b.text() + " is deselected")
-
-        if b.text() == "Button2":
-            if b.isChecked():
-                print(b.text() + " is selected")
-            else:
-                print(b.text() + " is deselected")
-
-
-def main():
-    app = QApplication(sys.argv)
-    ex = Radiodemo()
-    ex.show()
-    sys.exit(app.exec_())
-
-
-if __name__ == '__main__':
-    main()
+main("C:\\Program Files (x86)\\Steam\\steamapps\\common\\GarrysMod\\garrysmod\\addons", '.txt')

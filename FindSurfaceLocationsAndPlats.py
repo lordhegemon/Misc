@@ -160,10 +160,7 @@ def parseDatabaseForDataWithSectionsAndSHL(cursor):
     execute2 = ' from [dbo].[DirectionalSurveyHeader] as dsh'
     execute3 = ' join [dbo].[tblAPDLoc] tal on SUBSTRING(tal.API, 0, 11) = dsh.APINumber'
     execute4 = " where Zone_Name = 'Surface Location' and Wh_X IS NOT NULL and Wh_Y IS NOT NULL and Wh_FtNS is not Null and Wh_FtEW is not Null and API is not Null and Wh_Ns is not Null and Wh_EW is not Null and Wh_Sec is not Null and Wh_Twpn is not Null and Wh_Twpd is not Null and Wh_RngD is not Null and Wh_RngN is not Null and Wh_Pm is not Null"
-    # execute1 = ' select SUBSTRING(API, 0, 11) As API, Wh_sec,[Wh_Twpn],[Wh_Twpd], [Wh_RngN], [Wh_RngD], [Wh_Pm], Wh_X, Wh_Y, [Wh_FtNS], [Wh_Ns], [Wh_FtEW], [Wh_EW]'
-    # execute2 = ' from [dbo].[tblAPDLoc]'
-    # execute3 = " where Wh_X IS NOT NULL and Wh_Y IS NOT NULL and Wh_FtNS is not Null and Wh_FtEW is not Null and API is not Null and Wh_Ns is not Null and Wh_EW is not Null and Wh_Sec is not Null and Wh_Twpn is not Null and Wh_Twpd is not Null and Wh_RngD is not Null and Wh_RngN is not Null and Wh_Pm is not Null  and Zone_Name = 'Surface Location'"
-    # execute4 = " "  # " where Zone_Name = 'Surface Location'"
+
     data_lst = cursor.execute(execute1 + execute2 + execute3 + execute4)
     data_lst = fixer(data_lst)
     data_lst = [list(t) for t in set(tuple(element) for element in data_lst)]
@@ -514,15 +511,32 @@ def transformData2(lst):
         all_y = [j[7] for j in i]
         ax.plot(all_x, all_y, c='red')
 
-    # for i in coord_data_lst_grid:
-    #     all_x = [j[6] for j in i]
-    #     all_y = [j[7] for j in i]
-    #     ax.plot(all_x, all_y, c='blue')
+    for i in coord_data_lst_grid:
+        all_x = [j[6] for j in i]
+        all_y = [j[7] for j in i]
+        ax.plot(all_x, all_y, c='blue')
 
     # ax.scatter([surfaceCoord[0]], [surfaceCoord[1]], c='black')
-    plt.show()
-
+    coordLst_unmerged = list(itertools.chain.from_iterable(coord_data_lst))
+    coord_data_lst_grid_unmerged = list(itertools.chain.from_iterable(coord_data_lst_grid))
+    saveCoordData(coord_data_lst_grid_unmerged)
     return good_data
+
+
+def saveCoordData(lst):
+    df = pd.DataFrame(columns=['Section', 'Township', 'Township Direction', 'Range', 'Range Direction', 'Baseline', 'Easting', 'Northing', 'API'])
+    for i in lst:
+        new_row = {'Section': i[0],
+                   'Township': int(float(i[1])),
+                   'Township Direction': i[2],
+                   'Range': int(float(i[3])),
+                   'Range Direction': i[4],
+                   'Baseline': i[5],
+                   'Easting': i[6],
+                   'Northing': i[7],
+                   'API': i[8]}
+        df = df.append(new_row, ignore_index=True)
+    df.to_csv('CoordDataPlatsGrid2.csv')
 
 
 def checkProximalValues(data):

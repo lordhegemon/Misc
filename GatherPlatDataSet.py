@@ -502,7 +502,6 @@ def slopeFinder2(p1, p2):
     yIntercept = p1[1] - (slopeVal * p1[0])
     return slopeVal, yIntercept
 
-    return slopeVal
 
 
 def findAllTheIntersectionsBetweenLines(mX, mY, bXNeg, bXPos, bYNeg, bYPos, vertDirVal, vertDir, horDirVal, horDir, lineHor, lineVert, coordLst):
@@ -870,6 +869,7 @@ def getBHLMain(data_coords, bhlCoord):
     prox_lst = ProcessBHLLocation.findCorrectSide(data_coords[0], data_coords[1], data_coords[2], data_coords[3], [ix, iy])
     n_index, e_index = prox_lst[0][0], prox_lst[0][1]
     n_adjacent_values, e_adjacent_values = data_coords[n_index], data_coords[e_index]
+    print(n_adjacent_values, e_adjacent_values)
     NS_vals, EW_vals = ProcessBHLLocation.determineValuesBetween(n_adjacent_values, e_adjacent_values, [ix, iy])
     x1_NS, y1_NS = [p[0] for p in NS_vals], [p[1] for p in NS_vals]
     x1_EW, y1_EW = [p[0] for p in EW_vals], [p[1] for p in EW_vals]

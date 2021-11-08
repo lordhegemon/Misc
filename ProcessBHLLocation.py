@@ -1,6 +1,5 @@
 import openpyxl
 import ModuleAgnostic
-import GatherPlatDataSet
 import copy
 import re
 import itertools
@@ -23,11 +22,15 @@ from matplotlib.figure import Figure
 # northing - up to down, 4,500,000
 
 def findOtherBHL(side_data, bhl):
+
     side_data = ModuleAgnostic.oneToMany(side_data, 5)
     bhl_poss_lst = findCorrectSide(side_data[0], side_data[1], side_data[2], side_data[3], bhl)
+
     y_index, x_index = bhl_poss_lst[0][0], bhl_poss_lst[0][1]
     y_adjacent_values, x_adjacent_values = side_data[y_index], side_data[x_index]
+
     NS_vals, EW_vals = determineValuesBetween(y_adjacent_values, x_adjacent_values, bhl)  # find which values does the bhl lie between (bounded)
+
     m_NS1, b_NS1, m_EW1, b_EW1 = generateLineEq(NS_vals, EW_vals, bhl)  # GENERATE THE MX+B EQUATIONS FOR EACH POINTS
     b_NS2, b_EW2 = getParallelLineParameter(bhl, m_NS1, m_EW1)  # solve for y intercepts of parallel lines
     nearestPointDistance(1, m_NS1, b_NS1, bhl[0], bhl[1])
@@ -47,15 +50,11 @@ def translateSide(data_pt):
     elif data_pt == 3:
 
         return 'FWL'
-def findBHLLocation(pts_lst, bhl, bounded_lst):
-    only_coords_lst = [[pts_lst[i][j] for j in range(1, len(pts_lst[i]))] for i in range(len(pts_lst))]  # xtracts all data but the section keys
-    for i in range(len(only_coords_lst)):
-        if determineIfInside(bhl, only_coords_lst[i]):
-            side_data = bounded_lst[i]
-
+def findBHLLocation(side_data, bhl):
     bhl_poss_lst = findCorrectSide(side_data[0], side_data[1], side_data[2], side_data[3], bhl)
     northing_index, easting_index = bhl_poss_lst[0][0], bhl_poss_lst[0][1]
     northing_adjacent_values, easting_adjacent_values = side_data[northing_index], side_data[easting_index]
+
     NS_vals, EW_vals = determineValuesBetween(northing_adjacent_values, easting_adjacent_values, bhl)  # find which values does the bhl lie between (bounded)
     m_NS1, b_NS1, m_EW1, b_EW1 = generateLineEq(NS_vals, EW_vals, bhl)  # GENERATE THE MX+B EQUATIONS FOR EACH POINTS
     b_NS2, b_EW2 = getParallelLineParameter(bhl, m_NS1, m_EW1)  # solve for y intercepts of parallel lines
@@ -64,7 +63,7 @@ def findBHLLocation(pts_lst, bhl, bounded_lst):
     NS_distance = round(parallelLineDistance(b_NS1, b_NS2, m_NS1) * 3.2808399, 0)
     EW_distance = round(parallelLineDistance(b_EW1, b_EW2, m_EW1) * 3.2808399, 0)
 
-    return NS_distance, EW_distance, only_coords_lst, northing_index, easting_index
+    return NS_distance, EW_distance, side_data, northing_index, easting_index
 
 
 def determineIfInside(shl, data):
@@ -77,7 +76,6 @@ def determineIfInside(shl, data):
 def determineValuesBetween(lstNS_o, lstEW_o, val):
     lstNS, northing_val = [i[0] for i in lstNS_o], val[0]  # get the northing val as well as the list for northing values
     lstEW, easting_val = [i[1] for i in lstEW_o], val[1]
-
     diff_lst_NS, diff_lst_EW = [i - northing_val for i in lstNS], [i - easting_val for i in lstEW]
     pos_NS = lstNS_o[diff_lst_NS.index(min([i - northing_val for i in lstNS if i - northing_val > 0]))]
     neg_NS = lstNS_o[diff_lst_NS.index(max([i - northing_val for i in lstNS if i - northing_val < 0]))]
@@ -91,10 +89,6 @@ def generateLineEq(lstNS, lst_EW, bhl):
     ns_m, ew_m = ModuleAgnostic.slopeFinder2(lstNS[0], lstNS[1]), ModuleAgnostic.slopeFinder2(lst_EW[0], lst_EW[1])
     return ns_m[0], ns_m[1], ew_m[0], ew_m[1]
 
-
-# def averageTest(south_bounds, east_bounds, north_bounds, west_bounds):
-#     for x, y in zip(south_bounds, south_bounds[1:]):
-#         print(ModuleAgnostic.equationDistance(x[0], x[1], y[0], y[1]) * 3.2808399)
 
 
 def findCorrectSide(south_bounds, east_bounds, north_bounds, west_bounds, bhl):
@@ -167,58 +161,3 @@ def returnAlteredAngle(ns_angle, ew_angle, n_index, e_index):
         else:
             ew_angle = -1 * ew_angle - 180
     return ns_angle, ew_angle
-# def grapher(x, y):
-#     # fig1, ax = plt.subplots()
-#     fig, ax = plt.subplots()
-#     # ax = plt.axes(projection=None)
-#     ax.set_yticks(np.arange(min(y), max(y) + 1000, 1000))
-#     ax.set_xticks(np.arange(min(x), max(x) + 1000, 1000))
-#     ax.set_xlabel("Easting")
-#     ax.set_ylabel("Northing")
-#     ax.scatter(x, y, c='red')
-#     return fig
-#     # plt.tight_layout()
-#     # plt.show()
-#
-# def grapherAdv2(lines, offset, bhl):
-#     colors = ['red', 'yellow', 'green', 'black', 'blue', 'purple']
-#     ax = plt.axes(projection=None)
-#     ax.set_xlabel("Easting")
-#     ax.set_ylabel("Northing")
-#     for i in range(len(lines)):
-#         x1, y1 = [p[0] for p in lines[i]], [p[1] for p in lines[i]]
-#         ax.scatter(x1, y1, c=colors[i])
-#     ax.plot([p[0] for p in offset], [p[1] for p in offset], c='blue')
-#     ax.scatter(bhl[0], bhl[1], c='blue')
-#     plt.show()
-#
-# def grapherAdv(lines, offset, bhl):
-
-#     colors = ['red', 'yellow', 'green', 'black', 'blue', 'purple']
-#     fig = plt.figure()
-#     ax = fig.add_subplot(1,1,1)
-#     for i in range(len(lines)):
-#         x1, y1 = [p[0] for p in lines[i]], [p[1] for p in lines[i]]
-#         ax.scatter(x1, y1, c=colors[i])
-#     ax.plot([p[0] for p in offset], [p[1] for p in offset], c='blue')
-#     ax.scatter(bhl[0], bhl[1], c='blue')
-#
-#
-#     return fig
-# mat_depthbias_shadowmap 0.00001
-# mat_slopescaledepthbias_shadowmap 2
-# r_projectedtexture_filter 0.08
-# r_flashlightdepthres 16384
-# r_r_shadowcolor 255 255 255
-# "
-# def grapher_base(x, y):
-#     fig = plt.figure()
-#     ax = plt.axes(projection=None)
-#     ax.set_yticks(np.arange(min(y), max(y) + 1000, 1000))
-#     ax.set_xticks(np.arange(min(x), max(x) + 1000, 1000))
-#     ax.set_xlabel("Easting")
-#     ax.set_ylabel("Northing")
-#     ax.scatter(x, y, c='red')
-#     plt.tight_layout()
-#
-#     plt.show()
