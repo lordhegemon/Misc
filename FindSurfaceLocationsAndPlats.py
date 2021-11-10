@@ -30,6 +30,7 @@ def mainProcess():
     pd.options.mode.chained_assignment = None
     conn, cursor = sqlConnect()
     data_lst = parseDatabaseForDataWithSectionsAndSHL(cursor)
+
     # transformDatabaseQueryToDataframe(data_lst)
 
     # execute1 = ' select SUBSTRING(API, 0, 11) As API, Wh_sec,[Wh_Twpn],[Wh_Twpd], [Wh_RngN], [Wh_RngD], [Wh_Pm], Wh_X, Wh_Y, [Wh_FtNS], [Wh_Ns], [Wh_FtEW], [Wh_EW]'
@@ -44,21 +45,20 @@ def mainProcess():
     folder = os.path.join(folder, 'AnchorPoints')
     lst_parsed_df = pd.read_excel(os.path.join(folder, 'parsed_closure.xlsx'), dtype='object')
 
-    # lst_parsed_lst = lst_parsed_df.to_numpy().tolist()
-
+    lst_parsed_lst = lst_parsed_df.to_numpy().tolist()
+    # justConvertSidesToPoints(lst_parsed_lst)
     excel_parsed_for_good_closure_lst, excel_parsed_df = findDataInExistingExcelWithCorrectClosure(folder)
     matcher_lst_1 = matcherDF1(excel_parsed_df, data_lst)
-
-
+    # ma.printLine(matcher_lst_1)
     df_noclosure, df_base_lst = transformDatabaseQueryToDataframe(matcher_lst_1)
 
-
     matcher_lst_2 = matcherDF2(lst_parsed_df, data_lst)
+    # ma.printLine(matcher_lst_2)
     df_parsed_fin, df_parsed_fin_lst = transformDatabaseQueryToDataframe(matcher_lst_2)
-
+    # ma.printLine(df_parsed_fin_lst)
     df_merged, df_merged_lst = mergeBothPages(df_base_lst, df_parsed_fin_lst)
-    lst = transformData2(df_base_lst)
-
+    ma.printLine(df_merged_lst)
+    lst = transformData2(df_merged_lst)
 
     # compareConcLists(data_lst, excel_parsed_df)
 
@@ -71,7 +71,6 @@ def mainProcess():
     # # df_noclosure = df_noclosure.to_numpy().tolist()
     # df_anchor = pd.read_csv(os.path.join(folder, 'AnchorPoints2.csv'), encoding="ISO-8859-1")
     # # df_anchor = df_anchor.to_numpy().tolist()
-
 
     # # #
     # # compare_df = compareConcLists(df_good, df_all)
@@ -153,7 +152,47 @@ def mainProcess():
     #                'API': str(i[14])}
     #     df_base = df_base.append(new_row, ignore_index=True)
     # df_base.to_csv('PlatPointsNoClosure.csv')
+
+
 # 162622011
+
+def justConvertSidesToPoints(lst):
+    dir_lst = [['West-Up2', 'West-Up1', 'West-Down1', 'West-Down2'],
+               ['East-Up2', 'East-Up1', 'East-Down1', 'East-Down2'],
+               ['North-Left2', 'North-Left1', 'North-Right1', 'North-Right2'],
+               ['South-Left2', 'South-Left1', 'South-Right1', 'South-Right2']]
+    sides_grouped, counter, coord_data_lst, coord_data_lst_grid, shl_coords = [[]], 0, [], [], []
+    for i in lst:
+        sides_grouped[-1].append(i)
+        if counter == 15:
+            counter = 0
+            sides_grouped.append([])
+        else:
+            counter += 1
+    sides_grouped = [i for i in sides_grouped if i]
+    # ma.printLine(sides_grouped)
+    # for i in sides_grouped:
+    #     coord_data_lst.append([])
+    #     coord_data_lst_grid.append([])
+    #     all_data = []
+    #     data_converted = sideDataToDecimalAzimuth(dir_lst, i)
+    #     dir_lst_flatten = ma.manyToOne(dir_lst)
+    #     coordLst = getCoordsLst(data_converted, [0.0, 0.0])
+    #     eqLst, coordLst, cornersLst = linesMain(coordLst, dir_lst_flatten)
+    #     surfaceLoc = i[0][-4:]
+    #     print(i[0])
+    #     surfaceCoord, xMin, xMax, yMin, yMax = GatherPlatDataSet.getQuad(coordLst, surfaceLoc)
+    #     surfaceCoord = [i * 0.3048 for i in surfaceCoord]
+    #     shl_coords.append([i[0][16], i[0][17], i[0][13]])
+    #     change_x, change_y = abs(i[0][16] - surfaceCoord[0]), abs(i[0][17] - surfaceCoord[1])
+    #
+    #     for j in coordLst:
+    #         for k in j:
+    #             coord_data_lst[-1].append([i[0][:6] + [k[0] * 0.3048 + change_x, k[1] * 0.3048 + change_y] + [i[0][13]]])
+    #             all_data.append(k)
+    #             counter += 1
+    #     coord_data_lst[-1] = [k[0] for k in coord_data_lst[-1]]
+
 
 def parseDatabaseForDataWithSectionsAndSHL(cursor):
     execute1 = ' select Wh_sec,[Wh_Twpn],[Wh_Twpd], [Wh_RngN], [Wh_RngD], [Wh_Pm], NorthReference, iFGridConvergence, X, Y, SUBSTRING(tal.API, 0, 11) As API, [Wh_FtNS], [Wh_Ns], [Wh_FtEW], [Wh_EW]'
@@ -165,6 +204,7 @@ def parseDatabaseForDataWithSectionsAndSHL(cursor):
     data_lst = fixer(data_lst)
     data_lst = [list(t) for t in set(tuple(element) for element in data_lst)]
     return data_lst
+
 
 def findDataInExistingExcelWithCorrectClosure(folder):
     df_all = pd.read_csv(os.path.join(folder, 'PlatGridNumbers.csv'), encoding="ISO-8859-1")
@@ -189,14 +229,15 @@ def findDataInExistingExcelWithCorrectClosure(folder):
                 all_data.append(k)
         start, end = all_data[0], all_data[-1]
         closure_x, closure_y = round(end[0] - start[0], 4), round(end[1] - start[1], 4)
-        if abs(closure_x) > 5 or abs(closure_y) > 5:
-            counter = 0
-            for r in range(len(data_converted)):
-                counter += 1
-        else:
-            for j in i:
-                good_data.append(j)
+        # if abs(closure_x) > 5 or abs(closure_y) > 5:
+        #     counter = 0
+        #     for r in range(len(data_converted)):
+        #         counter += 1
+        # else:
+        #     for j in i:
+        good_data.append(j)
     return good_data, df_all
+
 
 def matcherDF1(df, lst):
     found_data = []
@@ -210,6 +251,7 @@ def matcherDF1(df, lst):
         re_conc = re.compile(r"^" + re.escape(lesser_conc) + r"\D")
         find = df[(df['Concatenation'].str.contains(re_conc))]
         if len(find) > 0:
+            print(i)
             new_line = find.to_numpy().tolist()
             if lesser_conc not in conc_lst:
                 for j in range(len(new_line)):
@@ -219,16 +261,15 @@ def matcherDF1(df, lst):
                     found_data.append(new_line[j])
                 conc_lst.append(lesser_conc)
 
-
     found_data = ma.oneToMany(found_data, 16)
 
     return found_data
+
 
 def matcherDF2(df, lst):
     found_data = []
     conc_lst = []
     for i in range(len(lst)):
-
         lst[i][2], lst[i][4], lst[i][5] = translateDirectionToNumber('township', lst[i][2]), translateDirectionToNumber('rng', lst[i][4]), translateDirectionToNumber('baseline', lst[i][5])
         lst[i][6] = lst[i][6][0]
         if lst[i][5] == 'None':
@@ -251,8 +292,8 @@ def matcherDF2(df, lst):
 
 def transformDatabaseQueryToDataframe(lst):
     df_base = pd.DataFrame(columns=['Section', 'Township', 'Township Direction', 'Range', 'Range Direction', 'Baseline', 'Side', 'Length',
-                                'Degrees', 'Minutes', 'Seconds', 'Alignment', 'Concatenation','API','North Reference', 'Grid Convergence', 'Northing', 'Easting',
-                                'FNSL Value', 'FNSL Direction', 'FEWL Value', 'FEWL Direction'])
+                                    'Degrees', 'Minutes', 'Seconds', 'Alignment', 'Concatenation', 'API', 'North Reference', 'Grid Convergence', 'Northing', 'Easting',
+                                    'FNSL Value', 'FNSL Direction', 'FEWL Value', 'FEWL Direction'])
     for j in lst:
         for i in j:
             if i[15] == 'None':
@@ -286,15 +327,17 @@ def transformDatabaseQueryToDataframe(lst):
 
     return df_base, df_base_lst
 
+
 def mergeBothPages(lst_parsed, lst_plats):
     df_base = pd.DataFrame(columns=['Section', 'Township', 'Township Direction', 'Range', 'Range Direction', 'Baseline', 'Side', 'Length',
-                                'Degrees', 'Minutes', 'Seconds', 'Alignment', 'Concatenation','API','North Reference', 'Grid Convergence', 'Northing', 'Easting',
-                                'FNSL Value', 'FNSL Direction', 'FEWL Value', 'FEWL Direction'])
+                                    'Degrees', 'Minutes', 'Seconds', 'Alignment', 'Concatenation', 'API', 'North Reference', 'Grid Convergence', 'Northing', 'Easting',
+                                    'FNSL Value', 'FNSL Direction', 'FEWL Value', 'FEWL Direction'])
 
     conc_lst = []
     merged_lst = []
     lst_parsed = ma.oneToMany(lst_parsed, 16)
     lst_plats = ma.oneToMany(lst_plats, 16)
+    lst_all = lst_parsed + lst_plats
     for i in lst_parsed:
         if i[0][12] not in conc_lst:
             conc_lst.append(i[0][12])
@@ -304,7 +347,7 @@ def mergeBothPages(lst_parsed, lst_plats):
             conc_lst.append(i[0][12])
             merged_lst.append(i)
 
-    for k in merged_lst:
+    for k in lst_all:
         for i in k:
             new_row = {'Section': i[0],
                        'Township': int(float(i[1])),
@@ -334,7 +377,6 @@ def mergeBothPages(lst_parsed, lst_plats):
     df_base_lst = df_base.to_numpy().tolist()
 
     return df_base, df_base_lst
-
 
 
 def compareConcLists(df_good, df_all):
@@ -396,8 +438,6 @@ def setDataValues(lst):
     #                 counter += 1
 
 
-
-
 def transformData(lst):
     dir_lst = [['West-Up2', 'West-Up1', 'West-Down1', 'West-Down2'],
                ['East-Up2', 'East-Up1', 'East-Down1', 'East-Down2'],
@@ -446,43 +486,47 @@ def transformData2(lst):
 
     lst = ma.oneToMany(lst, 16)
 
-
     coord_data_lst = []
     coord_data_lst_grid = []
     shl_coords = []
+    all_coord_data = []
+    ma.printLine(lst)
     for i in lst:
         coord_data_lst.append([])
         coord_data_lst_grid.append([])
         all_data = []
         data_converted = sideDataToDecimalAzimuth(dir_lst, i)
         dir_lst_flatten = ma.manyToOne(dir_lst)
-        coordLst = getCoordsLst(data_converted, [0.0, 0.0])
-        eqLst, coordLst, cornersLst = linesMain(coordLst, dir_lst_flatten)
-        surfaceLoc = i[0][-4:]
-        surfaceCoord, xMin, xMax, yMin, yMax = GatherPlatDataSet.getQuad(coordLst, surfaceLoc)
-        surfaceCoord = [i * 0.3048 for i in surfaceCoord]
-        shl_coords.append([i[0][16], i[0][17], i[0][13]])
-        change_x, change_y = abs(i[0][16] - surfaceCoord[0]), abs(i[0][17] - surfaceCoord[1])
+        try:
+            coordLst = getCoordsLst(data_converted, [0.0, 0.0])
+            eqLst, coordLst, cornersLst = linesMain(coordLst, dir_lst_flatten)
+            surfaceLoc = i[0][-4:]
+            surfaceCoord, xMin, xMax, yMin, yMax = GatherPlatDataSet.getQuad(coordLst, surfaceLoc)
+            surfaceCoord = [i * 0.3048 for i in surfaceCoord]
+            shl_coords.append([i[0][16], i[0][17], i[0][13]])
+            change_x, change_y = abs(i[0][16] - surfaceCoord[0]), abs(i[0][17] - surfaceCoord[1])
 
-
-        counter= 0
-        if i[0][14].lower() == 't':
-            for j in coordLst:
-                for k in j:
-                    coord_data_lst[-1].append([i[0][:6] + [k[0]*0.3048 + change_x, k[1]*0.3048 + change_y] + [i[0][13]]])
-                    all_data.append(k)
-                    counter += 1
-            coord_data_lst[-1] = [k[0] for k in coord_data_lst[-1]]
-        else:
-            for j in coordLst:
-                for k in j:
-                    coord_data_lst_grid[-1].append([i[0][:6] + [k[0]*0.3048 + change_x, k[1]*0.3048 + change_y] + [i[0][13]]])
-                    all_data.append(k)
-                    counter += 1
-            coord_data_lst_grid[-1] = [k[0] for k in coord_data_lst_grid[-1]]
+            counter = 0
+            if i[0][14].lower() == 't':
+                for j in coordLst:
+                    for k in j:
+                        coord_data_lst[-1].append([i[0][:6] + [k[0] * 0.3048 + change_x, k[1] * 0.3048 + change_y] + [i[0][13]]])
+                        all_data.append(k)
+                        counter += 1
+                coord_data_lst[-1] = [k[0] for k in coord_data_lst[-1]]
+            else:
+                for j in coordLst:
+                    for k in j:
+                        coord_data_lst_grid[-1].append([i[0][:6] + [k[0] * 0.3048 + change_x, k[1] * 0.3048 + change_y] + [i[0][13]]])
+                        all_data.append(k)
+                        counter += 1
+                coord_data_lst_grid[-1] = [k[0] for k in coord_data_lst_grid[-1]]
+        except:
+            pass
 
     coord_data_lst = [i for i in coord_data_lst if i]
     coord_data_lst_grid = [i for i in coord_data_lst_grid if i]
+    all_data = coord_data_lst + coord_data_lst_grid
     for i in range(len(coord_data_lst)):
         start, end = coord_data_lst[i][0][6:8], coord_data_lst[i][-1][6:8]
         closure_x, closure_y = round(end[0] - start[0], 4), round(end[1] - start[1], 4)
@@ -519,7 +563,9 @@ def transformData2(lst):
     # ax.scatter([surfaceCoord[0]], [surfaceCoord[1]], c='black')
     coordLst_unmerged = list(itertools.chain.from_iterable(coord_data_lst))
     coord_data_lst_grid_unmerged = list(itertools.chain.from_iterable(coord_data_lst_grid))
-    saveCoordData(coord_data_lst_grid_unmerged)
+    all_unmerged = list(itertools.chain.from_iterable(all_data))
+    # ma.printLine(all_unmerged)
+    saveCoordData(all_unmerged)
     return good_data
 
 
@@ -536,7 +582,7 @@ def saveCoordData(lst):
                    'Northing': i[7],
                    'API': i[8]}
         df = df.append(new_row, ignore_index=True)
-    df.to_csv('CoordDataPlatsGrid2.csv')
+    df.to_csv('AllGrids.csv')
 
 
 def checkProximalValues(data):
@@ -579,6 +625,7 @@ def sideDataToDecimalAzimuth(dir_lst, data):
 
     return data_converted
 
+
 def sideDataToDecimalAzimuth2(dir_lst, data):
     dir_lst_flatten = ma.manyToOne(dir_lst)
 
@@ -588,6 +635,7 @@ def sideDataToDecimalAzimuth2(dir_lst, data):
     data_converted = convertDirections(new_data, dir_lst_flatten)
 
     return data_converted
+
 
 def gatherValData(data, dir_lst):
     dir_lst_flatten = ma.manyToOne(dir_lst)
@@ -620,6 +668,7 @@ def convertDirections(new_data, dir_lst):
                       data_converted[0], data_converted[1], data_converted[2], data_converted[3]]
     return data_converted
 
+
 def convertDirections2(new_data, dir_lst):
     data_converted = []
     for i in range(len(dir_lst)):
@@ -642,6 +691,7 @@ def convertDirections2(new_data, dir_lst):
                       data_converted[11], data_converted[10], data_converted[9], data_converted[8],
                       data_converted[0], data_converted[1], data_converted[2], data_converted[3]]
     return data_converted
+
 
 def equationSolveForEndPoint(alpha, h, coord):
     if alpha < 90:
@@ -878,6 +928,7 @@ def fixer(lst):
     for row in lst:
         fixed_lst.append(list(map(str, list(row))))
     return fixed_lst
+
 
 class ZoomPan:
     def __init__(self):

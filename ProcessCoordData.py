@@ -259,6 +259,7 @@ def determineIfInside(shl, data):
 
 def getPlatBounds(data_set):
     data_setX, data_setY = [p[0] for p in data_set], [p[1] for p in data_set]
+    # print('data', data_setX)
     x_output, y_output = dict(enumerate(ModuleAgnostic.grouper(sorted(data_setX), 300), 1)), dict(enumerate(ModuleAgnostic.grouper(sorted(data_setY), 300), 1))
     x_output, y_output = [j for i, j in x_output.items()], [j for i, j in y_output.items()]
     xBounds, yBounds = boundaryFinder(x_output, y_output, data_set)

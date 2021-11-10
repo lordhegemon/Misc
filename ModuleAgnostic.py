@@ -304,3 +304,7 @@ def searcher(dir, text):
         for name in files:
             if text.lower() in name.lower():  # or '.mp4' in file or '.rm' in file:
                 print(os.path.join(subdir, name))
+
+
+def findSegmentLength(xy1, xy2):
+    return np.sqrt((xy1[0] - xy2[0]) ** 2 + (xy1[1] - xy2[1]) ** 2)

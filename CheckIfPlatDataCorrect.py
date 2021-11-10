@@ -1,7 +1,9 @@
 import os
 import pandas as pd
 import numpy as np
-
+from shapely.ops import cascaded_union
+from rtree import index
+idx = index.Index()
 import GatherPlatDataSet
 import ModuleAgnostic as ma
 import math
@@ -12,18 +14,191 @@ import ProcessCoordData
 import ProcessBHLLocation
 from itertools import chain
 from matplotlib import pyplot as plt
+import itertools
 
+def compareGISDataToParsed(df):
+    df_parsed = pd.read_csv("AllGrids.csv", encoding="ISO-8859-1")
+    df_parsed = df_parsed.to_numpy().tolist()
+
+    # df_parsed = ma.oneToMany(df_parsed, )
+    for i in range(len(df_parsed)):
+        df_parsed[i][:6], df_parsed[i][-1] = [int(j) for j in df_parsed[i][:6]], str(int(df_parsed[i][-1]))
+    d = [[df_parsed[0]]]
+    for i in range(1, len(df_parsed)):
+        if df_parsed[i][-1] != d[-1][-1][-1]:
+            d.append([])
+        d[-1].append(df_parsed[i])
+    df_parsed = d
+
+    for i in range(len(df_parsed)):
+        df_parsed_coords = [j[6:8] for j in df_parsed[i]]
+        df_parsed[i][0][0], df_parsed[i][0][1], df_parsed[i][0][3] = int(df_parsed[i][0][0]), int(df_parsed[i][0][1]), int(df_parsed[i][0][3])
+        # many_pts_conc = int(float(str(df_parsed[i][0]) + str(df_parsed[i][1]) + str(df_parsed[i][2]) + str(df_parsed[i][3]) + str(df_parsed[i][4]) + str(df_parsed[i][5])))
+        df_parsed[i][0][2] = translateNumberToDirection('township', str(int(df_parsed[i][0][2])))
+        df_parsed[i][0][4] = translateNumberToDirection('rng', str(int(df_parsed[i][0][4])))
+        df_parsed[i][0][5] = translateNumberToDirection('baseline', str(int(df_parsed[i][0][5])))
+        df_parsed[i][0] = [str(r) for r in df_parsed[i][0]]
+        len_lst = [len(r) for r in df_parsed[i][0][:6]]
+        if len_lst[0] == 1:
+            df_parsed[i][0][0] = "0" + str(df_parsed[i][0][0])
+        if len_lst[1] == 1:
+            df_parsed[i][0][1] = "0" + str(df_parsed[i][0][1])
+        if len_lst[3] == 1:
+            df_parsed[i][0][3] = "0" + str(df_parsed[i][0][3])
+        sql_conc_str = str(df_parsed[i][0][0]) + str(df_parsed[i][0][1]) + str(df_parsed[i][0][2]) + str(df_parsed[i][0][3]) + str(df_parsed[i][0][4]) + str(df_parsed[i][0][5])
+        df_tester = df[df['new_code'] == sql_conc_str][['Easting', 'Northing']].to_numpy().tolist()
+        print("\n______________________________________________________________\n", sql_conc_str)
+        compareDirect(df_tester, df_parsed_coords)
+    pd.set_option('display.max_columns', None)
+
+
+def compareDirect(lst1, lst2):
+
+    #
+    # print("\n\n\n")
+    lst1 = ProcessCoordData.getPlatBounds(lst1)[1:]
+    lst1 = list(chain.from_iterable(lst1))
+
+    new_points_1, new_points_2 = [], []
+    dup_free1, dup_free2 = [], []
+    colors = ["black", "#E69F00", "#56B4E9", "#56B4E9", '#0072B2', '#D55E00', '#CC79A7']
+    # for r in range(1):
+    new_pts_side = []
+    for xy1, xy2 in zip(lst1, lst1[1:]):
+        new_points_1.append(xy1)
+        for i in range(1, 1000):
+            div = i/1000
+            new_points_1.append(findPointsOnLine(xy1, xy2, div))
+            new_pts_side.append(findPointsOnLine(xy1, xy2, div))
+    for xy1, xy2 in zip(lst2, lst2[1:]):
+        new_points_2.append(xy1)
+        for i in range(1, 1000):
+            div = i / 1000
+            new_points_2.append(findPointsOnLine(xy1, xy2, div))
+            new_points_2.append(findPointsOnLine(xy1, xy2, div))
+
+
+    for x in new_points_1:
+        if x not in dup_free1:
+            dup_free1.append(x)
+
+    for x in new_points_2:
+        if x not in dup_free2:
+            dup_free2.append(x)
+    new_points_1, new_points_2 = dup_free1, dup_free2
+
+    poly_1 = Polygon(new_points_1).buffer(1.5)
+    poly_2 = Polygon(new_points_2).buffer(1.5)
+    area_poly_1 = poly_1.area
+    area_poly_2 = poly_2.area
+    output_diff = poly_1.difference(poly_2)
+    output_diff2 = poly_2.difference(poly_1)
+    total_area = poly_1.intersection(poly_2).area
+    counter = 0
+    total_diff, total_diff2 = 0, 0
+    # print(output_diff)
+    if output_diff.geom_type == 'MultiPolygon':
+        for i in output_diff:
+            total_diff += i.area
+    else:
+        total_diff += output_diff.area
+    if output_diff2.geom_type == 'MultiPolygon':
+        for i in output_diff2:
+            total_diff2 += i.area
+    else:
+        total_diff2 += output_diff2.area
+            # point_i = list(zip(*i.exterior.coords.xy))
+            # point_i = [list(j) for j in point_i]
+            # x1, y1 = [i[0] for i in point_i], [i[1] for i in point_i]
+            # ax1.plot(x1, y1, c=colors[counter])
+
+            # counter += 1
+
+        # print(point_i)
+        # point_i = list(point_i)
+        # print(point_i.tolist())
+    # print(poly_1.difference(poly_2))
+
+    overlap1 = round((total_area/area_poly_1) * 100,3)
+    overlap2 = round((total_area/area_poly_2) * 100, 3)
+    if 100.1 > overlap1 > 99.9 and 100.1 > overlap2 > 99.9:
+        print('total_diff1', total_diff)
+        print('total_diff2', total_diff2)
+        print('total area', total_area)
+        # print('total difference1', round((total_diff/total_area) * 100,3))
+        # print('total difference2', round((total_diff2 / total_area) * 100, 3))
+        print('total difference1', round((total_area / area_poly_1) * 100, 3))
+        print('total difference2', round((total_area / area_poly_2) * 100, 3))
+        pass
+    # else:
+    #     fig, ax1 = plt.subplots()
+    #     x1, y1 = [i[0] for i in new_points_1], [i[1] for i in new_points_1]
+    #     x2, y2 = [i[0] for i in new_points_2], [i[1] for i in new_points_2]
+    #     ax1.plot(x1, y1, c='#B42F32')
+    #     ax1.plot(x2, y2, c='#878D92')
+    #     plt.show()
+    # overlap_1 = findPolygonDifference(new_points_2, new_points_1)
+    # overlap_2 = findPolygonDifference(new_points_1, new_points_2)
+    # overlap = overlap_1 + overlap_2
+    # new_overlap = ProcessCoordData.getPlatBounds(overlap)[1:]
+    # new_overlap = list(chain.from_iterable(new_overlap))
+    # ma.printLine(new_overlap)
+    # x1, y1 = [i[0] for i in new_overlap], [i[1] for i in new_overlap]
+
+    # ax1.plot(x1, y1, c='#B42F32')
+    # ax1.plot(x2, y2, c='#878D92')
+    #
+
+def findPolygonDifference(lst, shape):
+    # fig, ax1 = plt.subplots()
+    poly = Polygon(shape)
+    contain_yes, contain_no = [], []
+    for i in lst:
+        if poly.contains(Point(i)):
+            contain_yes.append(i)
+        else:
+            contain_no.append(i)
+    # print(contain_yes)
+    poly_all = Polygon(poly).area
+    poly_yes = Polygon(contain_yes).area
+    poly_no = Polygon(contain_no).area
+
+    area_diff = abs(poly_yes - poly_all)
+    # print(poly_yes, poly_no, poly_all)
+    # print(area_diff)
+    x1, y1 = [i[0] for i in contain_yes], [i[1] for i in contain_yes]
+    x2, y2 = [i[0] for i in contain_no], [i[1] for i in contain_no]
+    x3, y3 = [i[0] for i in lst], [i[1] for i in lst]
+    x4, y4 = [i[0] for i in shape], [i[1] for i in shape]
+
+    # ax1.plot(x2, y2, c='black')
+    # ax1.plot(x3, y3, c="#E69F00")
+    # ax1.plot(x4, y4, c='#0072B2')
+    # ax1.fill(x1, y1, c='#B42F32', alpha = .8)
+    # plt.show()
+    return contain_yes
+
+
+
+
+def findPointsOnLine(xy1, xy2, div):
+    x, y = xy1[0] + (div * (xy2[0] - xy1[0])), xy1[1] + (div * (xy2[1] - xy1[1]))
+    return [x, y]
+    # return x,y
 
 def drawData():
     conn, cursor = sqlConnect()
+    len_lst = []
     sql_lst, sql_conc = parseDatabaseForDataWithSectionsAndSHL(cursor)
     df = pd.read_csv("All_Data_Lat_Lon.csv", encoding="ISO-8859-1")
+    compareGISDataToParsed(df)
     pd.set_option('display.max_columns', None)
-    # df_lst = df.to_numpy().tolist()
-    # label_lst = df['new_code'].unique
+    many_pts_lst, conc_many_lst, conc_bad = [], [142422, 27921911, 1652212, 1152212, 28921911, 1442212, 13921911, 152212, 852312], [652312, 3142212, 3642422, 2632222, 4922111, 3342622, 1822322, 3242622, 30722311, 2342212, 3442622, 722322, 22921511, 15921511, 31922111, 5822011, 1922322, 752312, 30722011, 3042212, 2532222, 8822011, 3532422, 242422, 2442212, 1342212, 552212]
+    # many_pts_lst, conc_many_lst, conc_bad = [], [], []
     fig, ax = plt.subplots()
     for i in range(len(sql_lst)):
         sql_lst[i][0], sql_lst[i][1], sql_lst[i][3] = int(sql_lst[i][0]), int(sql_lst[i][1]), int(sql_lst[i][3])
+        many_pts_conc = int(float(str(sql_lst[i][0]) + str(sql_lst[i][1]) + str(sql_lst[i][2]) + str(sql_lst[i][3]) + str(sql_lst[i][4]) + str(sql_lst[i][5])))
         sql_lst[i][2] = translateNumberToDirection('township', str(int(sql_lst[i][2])))
         sql_lst[i][4] = translateNumberToDirection('rng', str(int(sql_lst[i][4])))
         sql_lst[i][5] = translateNumberToDirection('baseline', str(int(sql_lst[i][5])))
@@ -34,12 +209,32 @@ def drawData():
         if len(str(sql_lst[i][3])) == 1:
             sql_lst[i][3] = "0" + str(sql_lst[i][3])
         sql_conc_str = str(sql_lst[i][0]) + str(sql_lst[i][1]) + str(sql_lst[i][2]) + str(sql_lst[i][3]) + str(sql_lst[i][4]) + str(sql_lst[i][5])
-
         df_tester = df[df['new_code'] == sql_conc_str][['Easting', 'Northing']].to_numpy().tolist()
         shl = sql_lst[i][8:10]
-
+        x, y = [q[0] for q in df_tester], [q[1] for q in df_tester]
+        if df_tester:
+            output = ProcessCoordData.getPlatBounds(df_tester)[1:]
+            sum_val = sum([len(i) for i in output])
+            len_lst.append([sum_val, sql_conc_str])
+            if sum_val > 30:
+                if many_pts_conc in conc_many_lst:
+                    for r in range(len(df_tester)):
+                        many_pts_lst.append([many_pts_conc] + df_tester[r])
+                if many_pts_conc not in conc_many_lst and many_pts_conc not in conc_bad:
+                    fig, ax1 = plt.subplots()
+                    ax1.plot(x, y, c='red')
+                    ax1.scatter(x, y, c='red')
+                    plt.show()
+                    prompt = input("Enter this data?")
+                    if prompt == 'y':
+                        conc_many_lst.append(many_pts_conc)
+                        for r in range(len(df_tester)):
+                            many_pts_lst.append([many_pts_conc] + df_tester[r])
+                        print('good', conc_many_lst)
+                    else:
+                        conc_bad.append(many_pts_conc)
+                        print('bad', conc_bad)
         if determineIfInside(shl, df_tester):
-            x, y = [q[0] for q in df_tester], [q[1] for q in df_tester]
             if max(x) - min(x) < 10000:
                 a = df_tester
                 b = df_tester[1:] + [df_tester[0]]
@@ -49,23 +244,23 @@ def drawData():
                 p = np.array(shl)
                 out = lineseg_dists(p, a, b)
                 out = out.tolist()
-                #
                 if checkSides(out, side_parameters):
-                    # fig, ax = plt.subplots()
-                    print(sql_conc_str)
                     ax.plot(x, y, c='red')
-                    # ax.scatter(x, y, c='red')
                     ax.scatter([shl[0]], [shl[1]], c='red')
-                    # ma.printLine(df_tester)
-                    # print()
-                    # print(a)
-                    # print(b)
+
                     # NS_distance, EW_distance = findLocationData(d_lst[j], shl)
                     # print(int(float(label_lst[j][:2])), sql_lst[i][0])
                     # if int(float(label_lst[j][:2])) == sql_lst[i][0] and int(float(label_lst[j][2:4])) == sql_lst[i][1] and int(float(label_lst[j][5:7])) == sql_lst[i][3]:
-                    # print('foo')
+
     plt.show()
+    len_lst = sorted(len_lst, key=lambda r: r[0])
+
+    # saveData(many_pts_lst)
+    # ma.printLine(len_lst)
+    # ma.printLine(many_pts_lst)
+    # ma.printLine(conc_many_lst)
             # print('shl', shl)
+
 
 
 
@@ -255,7 +450,7 @@ def saveData(lst):
                    'Northing': i[7],
                    'API': i[8]}
         df = df.append(new_row, ignore_index=True)
-    df.to_csv('UTMDataEdited.csv', index=False)
+    df.to_csv('OddballSections.csv', index=False)
 # [2722322,3322322,3122222,132122,3022222,23922111,1632222,932222,3022112,21922111,3632122,3652622,15722211,2732422,92622011,2222322,1732112,2522322,16722211,2522122,7922111,3322322,3422422,4922111,36722011,16722211,2532522,1632222,2632422,2622322,1922222,932222,2622222,3022222,21922111,1332522,3522422,2332122,15722011]
 def loadData():
     df = pd.read_csv("CoordDataPlatsGrid2.csv", encoding="ISO-8859-1")
