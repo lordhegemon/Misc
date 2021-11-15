@@ -5,6 +5,7 @@ from tika import parser
 def mainRun():
     path = 'J:\\Work\\WellPlat'
     for fileName in os.listdir(path):
+        print(fileName)
         new_path = os.path.join(path, fileName)
 
         parsed_data_full = parser.from_file(new_path, xmlContent=True)
