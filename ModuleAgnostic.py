@@ -10,6 +10,15 @@ import matplotlib.pyplot as plt
 from itertools import chain
 import statistics as st
 
+def removeDupesListOfLists(lst):
+    dup_free = []
+    dup_free_set = set()
+    for x in lst:
+        if tuple(x) not in dup_free_set:
+            dup_free.append(x)
+            dup_free_set.add(tuple(x))
+    return dup_free
+
 
 # C:\Work\RewriteAPD>C:\Users\colto\AppData\Local\Programs\Python\Python37\Scripts\pyuic5.exe fileDialog.ui -o fileDialog.py
 def writeFiles(cellLst, valuesLst, worksheet):
@@ -240,7 +249,6 @@ def grouper(iterable, val):
     group = []
     for item in iterable:
         if not prev or item - prev <= val:
-
             group.append(item)
         else:
             yield group
@@ -249,6 +257,19 @@ def grouper(iterable, val):
     if group:
         yield group
 
+def grouper2(iterable, val, index):
+    print(iterable)
+    prev = None
+    group = []
+    for item in iterable:
+        if not prev or item[index] - prev <= val:
+            group.append(item)
+        else:
+            yield group
+            group = [item]
+        prev = item[index]
+    if group:
+        yield group
 
 def polyfit(x, degree):
     y = list(range(len(x)))

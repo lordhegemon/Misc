@@ -262,6 +262,7 @@ def getPlatBounds(data_set):
     # print('data', data_setX)
     x_output, y_output = dict(enumerate(ModuleAgnostic.grouper(sorted(data_setX), 300), 1)), dict(enumerate(ModuleAgnostic.grouper(sorted(data_setY), 300), 1))
     x_output, y_output = [j for i, j in x_output.items()], [j for i, j in y_output.items()]
+
     xBounds, yBounds = boundaryFinder(x_output, y_output, data_set)
     south_bounds, north_bounds, west_bounds, east_bounds = yBounds[0], yBounds[1], xBounds[0], xBounds[1]
     south_bounds = sorted(boundsParser(south_bounds, 0, 'S'), key=lambda x: x[0])
@@ -321,7 +322,6 @@ def boundaryFinder(x_output, y_output, coord):
             for k in coord:
                 if xBounds[i][j] == k[0]:
                     xBounds[i][j] = k
-
     for i in range(len(yBounds)):
         for j in range(len(yBounds[i])):
             for k in coord:
