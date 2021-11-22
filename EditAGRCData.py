@@ -162,33 +162,18 @@ def checkForPointsTooCloseToCorners(lst, centroid, o_lst):
                 counter += 1
         pass_counter += 1
         if pass_counter == 10:
-            # ma.printLine(o_lst)
             fig, ax1 = plt.subplots()
             x1, y1 = [i[0] for i in corners], [i[1] for i in corners]
             x2, y2 = [i[0] for i in lst], [i[1] for i in lst]
             ax1.scatter(x1, y1, c='blue')
             ax1.scatter(x2, y2, c='black', s=5)
             plt.show()
-        # print(counter)
     lst = sorted(lst, key=lambda r: r[2], reverse=True)
     corners = lst[:4]
     corners = checkClockwisePts(corners)
 
     corner_arrange = [i + [(math.degrees(math.atan2(centroid[1] - i[1], centroid[0] - i[0])) + 360) % 360] for i in corners]
     corners = sorted(corner_arrange, key=lambda r: r[-1])
-    # for i in range(len(corners)):
-    #     print(i, corners[i], colors[i])
-
-    # fig, ax1 = plt.subplots()
-    # # # x1, y1 = [i[0] for i in found_data_theoretical_pts], [i[1] for i in found_data_theoretical_pts]
-    # x1, y1 = [i[0] for i in lst], [i[1] for i in lst]
-    # ax1.scatter([corners[0][0]], [corners[0][1]], c='blue')
-    # ax1.scatter([corners[1][0]], [corners[1][1]], c='red')
-    # ax1.scatter([corners[2][0]], [corners[2][1]], c='yellow')
-    # ax1.scatter([corners[3][0]], [corners[3][1]], c='black')
-    # ax1.scatter(x1, y1, c=colors[0], s = 5)
-    # plt.show()
-
     return corners, lst
 def reorganizeLstPointsWithAngle(lst, centroid):
     lst_arrange = [i + [(math.degrees(math.atan2(centroid[1] - i[1], centroid[0] - i[0])) + 360) % 360] for i in lst]

@@ -107,7 +107,7 @@ def runData(i, fileName, counter):
         tot_lst.append(out)
         test = bounded_comp_lst[i] + visual_lst[i] + all_visual
 
-        ModuleAgnostic.graphData(test)
+        # ModuleAgnostic.graphData(test)
 
     """Merge all the data into a list of sublists where each sublist corresponds to a page."""
 

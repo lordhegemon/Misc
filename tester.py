@@ -1,16 +1,22 @@
-import re
-import openpyxl
-import os
-import pandas as pd
 import numpy as np
-from glob import glob
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
 
-def parseAllFoldersForString(new_path, searcher_var):
-    files = glob(new_path + '/**/', recursive=True)
-    for i in files:
-        for j in os.listdir(i):
-            if searcher_var in j:
-                print(j)
+fig, ax = plt.subplots()
+xdata, ydata = [], []
+ln, = plt.plot([], [], 'ro')
 
+def init():
+    ax.set_xlim(0, 2*np.pi)
+    ax.set_ylim(-1, 1)
+    return ln,
 
-main("C:\\Program Files (x86)\\Steam\\steamapps\\common\\GarrysMod\\garrysmod\\addons", '.txt')
+def update(frame):
+    xdata.append(frame)
+    ydata.append(np.sin(frame))
+    ln.set_data(xdata, ydata)
+    return ln,
+
+ani = FuncAnimation(fig, update, frames=np.linspace(0, 2*np.pi, 128),
+                    init_func=init, blit=True)
+plt.show()

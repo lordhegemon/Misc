@@ -335,12 +335,13 @@ def boundaryFinder(x_output, y_output, coord):
 
 
 def grapher(x, y):
-    fig = plt.figure()
-    ax = plt.axes(projection=None)
-    ax.set_yticks(np.arange(min(y), max(y) + 1000, 1000))
-    ax.set_xticks(np.arange(min(x), max(x) + 1000, 1000))
-    ax.set_xlabel("Easting")
-    ax.set_ylabel("Northing")
-    ax.scatter(x, y, c='red')
-    plt.tight_layout()
-    plt.show()
+    pass
+    # fig = plt.figure()
+    # ax = plt.axes(projection=None)
+    # ax.set_yticks(np.arange(min(y), max(y) + 1000, 1000))
+    # ax.set_xticks(np.arange(min(x), max(x) + 1000, 1000))
+    # ax.set_xlabel("Easting")
+    # ax.set_ylabel("Northing")
+    # ax.scatter(x, y, c='red')
+    # plt.tight_layout()
+    # plt.show()

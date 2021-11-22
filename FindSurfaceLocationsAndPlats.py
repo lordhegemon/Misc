@@ -539,26 +539,26 @@ def transformData2(lst):
             coord_data_lst_grid[i][-1] = coord_data_lst_grid[i][0]
 
     zp = ZoomPan()
-    fig, ax = plt.subplots()
+    # fig, ax = plt.subplots()
     figZoom, figPan = zp.zoom_factory(ax, base_scale=1.1), zp.pan_factory(ax)
 
     shl_coords = [list(t) for t in set(tuple(element) for element in shl_coords)]
     all_x = [j[0] for j in shl_coords]
     all_y = [j[1] for j in shl_coords]
     all_text = [j[2] for j in shl_coords]
-    ax.scatter(all_x, all_y, c='red')
+    # ax.scatter(all_x, all_y, c='red')
 
     # for j in range(len(shl_coords)):
     #     ax.text(all_x[j], all_y[j] + 200, all_text[j])
     for i in coord_data_lst:
         all_x = [j[6] for j in i]
         all_y = [j[7] for j in i]
-        ax.plot(all_x, all_y, c='red')
+        # ax.plot(all_x, all_y, c='red')
 
     for i in coord_data_lst_grid:
         all_x = [j[6] for j in i]
         all_y = [j[7] for j in i]
-        ax.plot(all_x, all_y, c='blue')
+        # ax.plot(all_x, all_y, c='blue')
 
     # ax.scatter([surfaceCoord[0]], [surfaceCoord[1]], c='black')
     coordLst_unmerged = list(itertools.chain.from_iterable(coord_data_lst))

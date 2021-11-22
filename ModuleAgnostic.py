@@ -329,3 +329,4 @@ def searcher(dir, text):
 
 def findSegmentLength(xy1, xy2):
     return np.sqrt((xy1[0] - xy2[0]) ** 2 + (xy1[1] - xy2[1]) ** 2)
+

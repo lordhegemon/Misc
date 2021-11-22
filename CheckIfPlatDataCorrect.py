@@ -424,7 +424,8 @@ def drawData():
     conn, cursor = sqlConnect()
     len_lst = []
     sql_lst, sql_conc = parseDatabaseForDataWithSectionsAndSHL(cursor)
-    df = pd.read_csv("All_Data_Lat_Lon.csv", encoding="ISO-8859-1")
+    # df = pd.read_csv("All_Data_Lat_Lon.csv", encoding="ISO-8859-1")
+    df = pd.read_csv("LatLonEdited.csv", encoding="ISO-8859-1")
     compareGISDataToParsed(df)
     pd.set_option('display.max_columns', None)
     many_pts_lst, conc_many_lst, conc_bad = [], [642312, 142422, 27921911, 1652212, 1152212, 28921911, 1442212, 13921911, 152212, 852312], [2542222, 652312, 3142212, 3642422, 2632222, 4922111, 3342622, 1822322, 3242622, 30722311, 2342212, 3442622, 722322, 22921511, 15921511, 31922111, 5822011,
@@ -613,7 +614,7 @@ def mainProcessRemoveDupes():
     for i in range(len(id_conc)):
         if len(id_conc[i]) > 21:
             grouped_lst.append(id_conc[i][1:21])
-    fig, ax = plt.subplots()
+    # fig, ax = plt.subplots()
     for i in grouped_lst:
         x, y = [j[6] for j in i], [j[7] for j in i]
         ts = translateNumberToDirection('township', str(int(i[0][2])))
@@ -621,8 +622,8 @@ def mainProcessRemoveDupes():
         bs = translateNumberToDirection('baseline', str(int(i[0][5])))
         id = str(int(float(i[0][0]))) + " " + str(int(float(i[0][1]))) + ts + " " + str(int(float(i[0][3]))) + rng + " " + bs
         centroid = (sum(x) / len(i), sum(y) / len(i))
-        ax.text(centroid[0], centroid[1], id)
-        ax.plot(x, y, c='red')
+        # ax.text(centroid[0], centroid[1], id)
+        # ax.plot(x, y, c='red')
     # plt.show()
     grouped_lst = list(chain.from_iterable(grouped_lst))
     saveData(grouped_lst)
