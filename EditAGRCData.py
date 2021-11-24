@@ -5,7 +5,7 @@ import numpy as np
 from shapely.ops import cascaded_union
 from rtree import index
 from shapely.geometry import mapping
-import CheckIfPlatDataCorrect
+# import CheckIfPlatDataCorrect
 
 import GatherPlatDataSet
 import ModuleAgnostic as ma
@@ -48,38 +48,66 @@ def renderAGRCDataDown():
         tsr_data = i[0][:6]
         data_x, data_y = [r[0] for r in data_set], [r[1] for r in data_set]
         if max(data_x) - min(data_x) < 10000 and max(data_y) - min(data_y) < 10000 and len(data_set) > 10:
-            # if counter == 4389:
-            #     print(i)
             data_output = findCorners(data_set)
             for j in range(len(data_output)):
                 data_output[j] = tsr_data + data_output[j]
                 new_sides.append(data_output[j])
+
         counter += 1
 
     new_sides = ma.removeDupesListOfLists(new_sides)
-    print('new sides')
-    saveData(new_sides)
-    print('done')
+    # print('new sides')
+    # saveData(new_sides)
+    # print('done')
+
 
 def saveData(lst):
     lst = [i[:8] for i in lst]
-    df = pd.DataFrame(columns=['Section', 'Township', 'Township Direction', 'Range', 'Range Direction', 'Baseline', 'Easting', 'Northing'])
-    counter= 0
-    for i in lst:
-        if counter % 1000 == 0:
-            print(counter)
-        new_row = {'Section': i[0],
-                   'Township': int(float(i[1])),
-                   'Township Direction': i[2],
-                   'Range': int(float(i[3])),
-                   'Range Direction': i[4],
-                   'Baseline': i[5],
-                   'Easting': i[6],
-                   'Northing': i[7]}
-        df = df.append(new_row, ignore_index=True)
-        counter += 1
+    df = pd.DataFrame(columns=['Section', 'Township', 'Township Direction', 'Range', 'Range Direction', 'Baseline', 'Easting', 'Northing', 'ConcCode', 'AGRC Version'])
+    counter = 0
+
+    df_test = [{'Section': i[0], 'Township': int(float(i[1])), 'Township Direction': i[2], 'Range': int(float(i[3])),
+                'Range Direction': i[4], 'Baseline': i[5], 'Easting': i[6], 'Northing': i[7], 'ConcCode': makeConcCode(i), 'AGRC Version': 'AGRC V.1'} for i in lst]
+    df = pd.DataFrame(df_test, columns=['Section', 'Township', 'Township Direction', 'Range', 'Range Direction', 'Baseline', 'Easting', 'Northing', 'ConcCode', 'AGRC Version'])
+
+    # print(df)
+    # for i in lst:
+    #     if counter % 1000 == 0:
+    #         print(counter)
+    #     new_row = {'Section': i[0],
+    #                'Township': int(float(i[1])),
+    #                'Township Direction': i[2],
+    #                'Range': int(float(i[3])),
+    #                'Range Direction': i[4],
+    #                'Baseline': i[5],
+    #                'Easting': i[6],
+    #                'Northing': i[7],
+    #                'ConcCode': makeConcCode(i),
+    #                'AGRC Version': 'AGRC V.1'}
+    #     df = df.append(new_row, ignore_index=True)
+    #     counter += 1
     # df.to_csv('OddballSections.csv', index=False)
     df.to_csv('LatLonEdited.csv', index=False)
+
+
+def makeConcCode(data):
+    data[0] = int(float(data[0]))
+    data[1] = int(float(data[1]))
+    data[2] = translateNumberToDirection('township', str(data[2]))
+    data[3] = int(float(data[3]))
+    data[4] = translateNumberToDirection('rng', str(data[4]))
+    data[5] = translateNumberToDirection('baseline', str(data[5]))
+    if len(str(data[0])) == 1:
+        data[0] = "0" + str(data[0])
+    if len(str(data[1])) == 1:
+        data[1] = "0" + str(data[1])
+    if len(str(data[3])) == 1:
+        data[3] = "0" + str(data[3])
+    for j in range(len(data)):
+        data[j] = str(data[j])
+    output = "".join(data[:6])
+
+    return output
 
 
 def sortCorners(corners_lst):
@@ -118,7 +146,7 @@ def findSideValues(data, corner, label):
         for k in range(5):
             distance_lst = []
             div = k / 4
-            found_pt = CheckIfPlatDataCorrect.findPointsOnLine(found_side_data[0], found_side_data[-1], div)
+            found_pt = findPointsOnLine(found_side_data[0], found_side_data[-1], div)
             found_data_theoretical_pts.append(found_pt)
 
             for l in found_side_data:
@@ -129,7 +157,6 @@ def findSideValues(data, corner, label):
             #     slope = ma.slopeFinder2(found_pt, distance_lst[0][0])
             #     angle = math.degrees(math.atan(1 / slope[0]))
 
-
             new_sides.append(distance_lst[0][0])
     else:
         new_sides = found_side_data
@@ -138,6 +165,10 @@ def findSideValues(data, corner, label):
     return found_side_data
     # pass
 
+def findPointsOnLine(xy1, xy2, div):
+    x, y = xy1[0] + (div * (xy2[0] - xy1[0])), xy1[1] + (div * (xy2[1] - xy1[1]))
+    return [x, y]
+    # return x,y
 
 def checkClockwisePts(coords):
     center = tuple(map(operator.truediv, reduce(lambda x, y: map(operator.add, x, y), coords), [len(coords)] * 2))
@@ -145,10 +176,12 @@ def checkClockwisePts(coords):
     return output
 
 
-def checkForPointsTooCloseToCorners(lst, centroid, o_lst):
+def checkForPointsTooCloseToCorners(lst, centroid, o_lst, counter_def):
     colors = ["blue", "red", "yellow", "black"]
     counter = 0
     pass_counter = 0
+    lst_poly = Polygon(lst)
+
     while counter != 3:
         lst_sorted_by_distance = copy.deepcopy(sorted(lst, key=lambda r: r[2]))[::-1]
         corners = lst_sorted_by_distance[:4]
@@ -169,15 +202,20 @@ def checkForPointsTooCloseToCorners(lst, centroid, o_lst):
             ax1.scatter(x2, y2, c='black', s=5)
             plt.show()
     lst = sorted(lst, key=lambda r: r[2], reverse=True)
+    # if counter_def == 442:
+    #     ma.printLine(lst)
     corners = lst[:4]
     corners = checkClockwisePts(corners)
 
     corner_arrange = [i + [(math.degrees(math.atan2(centroid[1] - i[1], centroid[0] - i[0])) + 360) % 360] for i in corners]
     corners = sorted(corner_arrange, key=lambda r: r[-1])
     return corners, lst
+
+
 def reorganizeLstPointsWithAngle(lst, centroid):
     lst_arrange = [i + [(math.degrees(math.atan2(centroid[1] - i[1], centroid[0] - i[0])) + 360) % 360] for i in lst]
     return lst_arrange
+
 
 def arrangeDirectionData(corner, lst, label):
     found_data_theoretical_pts = []
@@ -195,7 +233,6 @@ def arrangeDirectionData(corner, lst, label):
 
     found_side_data.append(xy1)
     for i in lst:
-        # print(i[-1])
         if label == 'west':
             if 360 > i[-1] > max(angles) or min(angles) > i[-1] > 0:
                 found_side_data.append(i)
@@ -208,7 +245,7 @@ def arrangeDirectionData(corner, lst, label):
         for k in range(5):
             distance_lst = []
             div = k / 4
-            found_pt = CheckIfPlatDataCorrect.findPointsOnLine(found_side_data[0], found_side_data[-1], div)
+            found_pt = findPointsOnLine(found_side_data[0], found_side_data[-1], div)
             found_data_theoretical_pts.append(found_pt)
             for l in found_side_data:
                 distance_lst.append([l, ma.findSegmentLength(found_pt, l)])
@@ -218,58 +255,154 @@ def arrangeDirectionData(corner, lst, label):
         new_sides = found_side_data
     found_side_data = new_sides
 
-    # fig, ax1 = plt.subplots()
-    # x1, y1 = [i[0] for i in corner], [i[1] for i in corner]
-    # x2, y2 = [i[0] for i in found_side_data], [i[1] for i in found_side_data]
-    # x3, y3 = [i[0] for i in lst], [i[1] for i in lst]
-    # ax1.scatter(x1, y1, c='red')
-    # ax1.scatter(x2, y2, c='blue')
-    # ax1.scatter(x3, y3, c='black', s = 5)
-    # plt.show()
-    #
+    # if label == 'west':
+    #     for i in range(len(found_side_data)-1):
+    #         findNewLengthAndAngle(found_side_data[i][:2], found_side_data[i+1][:2], label, found_side_data)
+
     return found_side_data
 
 
+def findNewLengthAndAngle(xy1, xy2, label, found_side_data):
+    line = ma.findSegmentLength(xy1, xy2)
+    angle = (math.degrees(math.atan2(xy1[1] - xy2[1], xy1[0] - xy2[0])) + 360) % 360
+    changeAngles(label, angle, found_side_data)
+
+
+def translateNumberToDirection(variable, val):
+    try:
+        val = str(int(val))
+        if variable == 'rng':
+            if val == '2':
+                return 'W'
+            elif val == '1':
+                return 'E'
+        elif variable == 'township':
+            if val == '2':
+                return 'S'
+            elif val == '1':
+                return 'N'
+        elif variable == 'baseline':
+            if val == '2':
+                return 'U'
+            elif val == '1':
+                return 'S'
+        elif variable == 'alignment':
+            if val == '1':
+                return 'SE'
+            elif val == '2':
+                return 'NE'
+            elif val == '3':
+                return 'SW'
+            elif val == '4':
+                return 'NW'
+    except:
+        pass
+
+
+def changeAngles(label, angle, found_side_data):
+    if label.lower() == 'west':
+        if 360 > angle > 220:
+            pass
+            # print(angle, abs(360 - (angle - 90)))
+        elif 150 > angle > 50:
+            pass
+            # print(angle, abs(angle - 90))
+        else:
+            if angle != 0:
+                fig, ax1 = plt.subplots()
+                x1, y1 = [i[0] for i in found_side_data], [i[1] for i in found_side_data]
+                ax1.scatter(x1, y1, c='black')
+                ax1.set_aspect('equal', adjustable='box')
+                plt.show()
+    # if 'west' in data[i][0].lower():
+    #     if dir_val in [4, 1]:
+    #         decVal = 90 + dec_val_base
+    #     else:
+    #         decVal = 90 - dec_val_base
+    # if 'east' in data[i][0].lower():
+    #     if dir_val in [4, 1]:
+    #         decVal = 270 + dec_val_base
+    #     else:
+    #         decVal = 270 - dec_val_base
+    # if 'north' in data[i][0].lower():
+    #     if dir_val in [3, 2]:
+    #         decVal = 360 - (270 + dec_val_base)
+    #     else:
+    #         decVal = 270 + dec_val_base
+    # if 'south' in data[i][0].lower():
+    #     if dir_val in [4, 1]:
+    #         decVal = 90 + dec_val_base
+    #     else:
+    #         decVal = 360 - (90 + dec_val_base)
+
+def cornerGeneratorProcess(data_lengths):
+    centroid = Polygon(data_lengths).centroid
+    centroid = [centroid.x, centroid.y]
+    lst_poly = Polygon(data_lengths)
+    bounds = lst_poly.bounds
+    bounds_lst = organizeBoundsToPoints(bounds)
+    corners = determinePointProximity(bounds_lst, data_lengths)
+    corners = checkClockwisePts(corners)
+    corner_arrange = [i + [(math.degrees(math.atan2(centroid[1] - i[1], centroid[0] - i[0])) + 360) % 360] for i in corners]
+    corners = sorted(corner_arrange, key=lambda r: r[-1])
+    return corners
 
 
 def findCorners(lst):
-    lst = checkClockwisePts(lst)
+    try:
+        lst = checkClockwisePts(lst)
+    except TypeError:
+        print(lst)
 
     data_lengths = []
+
     centroid = Polygon(lst).centroid
     centroid = [centroid.x, centroid.y]
+    # print(centroid)
     for i in range(len(lst)):
         # output = GatherPlatDataSet.slopeFinder2(centroid, lst[i])
         data_lengths.append(lst[i] + [ma.findSegmentLength(centroid, lst[i])])
 
-    corners, data_lengths = checkForPointsTooCloseToCorners(data_lengths, centroid, lst)
-    data_lengths = reorganizeLstPointsWithAngle(data_lengths, centroid)
+    # corners = cornerGeneratorProcess(data_lengths)
 
+    # lst_poly = Polygon(data_lengths)
+    # bounds = lst_poly.bounds
+    # bounds_lst = organizeBoundsToPoints(bounds)
+    # corners = determinePointProximity(bounds_lst, data_lengths)
+    # corners = checkClockwisePts(corners)
+    # corner_arrange = [i + [(math.degrees(math.atan2(centroid[1] - i[1], centroid[0] - i[0])) + 360) % 360] for i in corners]
+    # corners = sorted(corner_arrange, key=lambda r: r[-1])
+
+    # if counter == 0:
+    #     print(1, corners)
+    # # corners, data_lengths = checkForPointsTooCloseToCorners(data_lengths, centroid, lst, counter)
+    # if counter == 0:
+    #     print(2, corners)
+    corners = cornerGeneratorProcess(data_lengths)
+    data_lengths = reorganizeLstPointsWithAngle(data_lengths, centroid)
     east_side = arrangeDirectionData(corners, data_lengths, 'east')
     north_side = arrangeDirectionData(corners, data_lengths, 'north')
     west_side = arrangeDirectionData(corners, data_lengths, 'west')
     south_side = arrangeDirectionData(corners, data_lengths, 'south')
-
     all_data = west_side[1:] + north_side[1:] + east_side[1:] + south_side[1:]
-    # corners = sortCorners(corners)
-    # corners = [i[:2] for i in corners]
+
 
     # fig, ax1 = plt.subplots()
-    # # # # x1, y1 = [i[0] for i in found_data_theoretical_pts], [i[1] for i in found_data_theoretical_pts]
-    # # # # x2, y2 = [i[0] for i in data], [i[1] for i in data]
-    # ax1.scatter([corners[0][0]], [corners[0][1]], c='black')
-    # ax1.scatter([corners[1][0]], [corners[1][1]], c='blue')
-    # ax1.scatter([corners[2][0]], [corners[2][1]], c='red')
-    # ax1.scatter([corners[3][0]], [corners[3][1]], c='yellow')
-    # ax1.scatter([centroid[0]], [centroid[1]], c='black')
+    # # # x1, y1 = [i[0] for i in found_data_theoretical_pts], [i[1] for i in found_data_theoretical_pts]
+    # # # x2, y2 = [i[0] for i in data], [i[1] for i in data]
+    # x1, y1 = [i[0] for i in east_side], [i[1] for i in east_side]
+    # x2, y2 = [i[0] for i in north_side], [i[1] for i in north_side]
+    # x3, y3 = [i[0] for i in west_side], [i[1] for i in west_side]
+    # x4, y4 = [i[0] for i in south_side], [i[1] for i in south_side]
+    # ax1.scatter(x1, y1, c='black')
+    # ax1.scatter(x2, y2, c='blue')
+    # ax1.scatter(x3, y3, c='red')
+    # ax1.scatter(x4, y4, c='yellow')
     # plt.show()
     # east_side = findSideValues(lst, corners, 'east')
     # north_side = findSideValues(lst, corners, 'north')
     # west_side = findSideValues(lst, corners, 'west')
     # south_side = findSideValues(lst, corners, 'south')
-
-
-
 
     # for xy1, xy2 in zip(lst, lst[1:]):
     #     output = GatherPlatDataSet.slopeFinder2(xy1, xy2)
@@ -307,20 +440,51 @@ def findCorners(lst):
     # all_data = west_side[1:] + north_side[1:] + east_side[1:] + south_side[1:]
     # all_data = west_side + north_side + east_side + south_side
     # all_data = ma.removeDupesListOfLists(all_data)
-    # fig, ax1 = plt.subplots()
-    # # x1, y1 = [i[0] for i in east_side], [i[1] for i in east_side]
-    # # x2, y2 = [i[0] for i in north_side], [i[1] for i in north_side]
-    # # x3, y3 = [i[0] for i in west_side], [i[1] for i in west_side]
-    # # x4, y4 = [i[0] for i in south_side], [i[1] for i in south_side]
-    # x5, y5 = [i[0] for i in all_sides], [i[1] for i in all_sides]
-    # # ax1.scatter(x1, y1, c='black')  # east
-    # # ax1.scatter(x2, y2, c='blue')  # north
-    # # ax1.scatter(x3, y3, c='red')  # west
-    # # ax1.scatter(x4, y4, c='yellow')  # south
-    # ax1.scatter(x5, y5, c='grey', s=5)
-    # plt.show()
+
+    # if counter == 442:
+    #     fig, ax1 = plt.subplots()
+    #     # x1, y1 = [i[0] for i in east_side], [i[1] for i in east_side]
+    #     # x2, y2 = [i[0] for i in north_side], [i[1] for i in north_side]
+    #     # x3, y3 = [i[0] for i in west_side], [i[1] for i in west_side]
+    #     # x4, y4 = [i[0] for i in south_side], [i[1] for i in south_side]
+    #     x1, y1 = [corners[0][0]], [corners[0][1]]
+    #     x2, y2 = [corners[1][0]], [corners[1][1]]
+    #     x3, y3 = [corners[2][0]], [corners[2][1]]
+    #     x4, y4 = [corners[3][0]], [corners[3][1]]
+    #     x5, y5 = [i[0] for i in bounds_lst], [i[1] for i in bounds_lst]
+    #     x6, y6 = [i[0] for i in all_data], [i[1] for i in all_data]
+    #     ax1.scatter(x1, y1, c='black')  # east
+    #     ax1.scatter(x2, y2, c='blue')  # north
+    #     ax1.scatter(x3, y3, c='red')  # west
+    #     ax1.scatter(x4, y4, c='yellow')  # south
+    #     ax1.scatter(x5, y5, c='grey', s=5)
+    #     ax1.scatter(x6, y6, c='red', s = 1)
+    #     plt.show()
 
     return all_data
+
+
+def organizeBoundsToPoints(bounds):
+    nw = [bounds[0], bounds[3]]
+    ne = [bounds[2], bounds[3]]
+    sw = [bounds[0], bounds[1]]
+    se = [bounds[2], bounds[1]]
+    return nw, ne, sw, se
+
+
+def determinePointProximity(bounds, lst):
+    distance_lst = []
+    # ma.printLine(lst)
+    for i in bounds:
+        min_distance = 9999999
+        dist_pt = []
+        for j in lst:
+            distance = ma.findSegmentLength(i, j)
+            if distance < min_distance:
+                min_distance = distance
+                dist_pt = j
+        distance_lst.append(dist_pt)
+    return distance_lst
 
 
 def graph_data(lst_all, n_data, s_data, e_data, w_data):
@@ -348,13 +512,73 @@ def rewriteDataLatLon(lst):
         tsr_line = i[-1]
         section, township, township_dir, range_val, range_dir, meridian = int(tsr_line[:2]), int(tsr_line[2:4]), tsr_line[4], int(tsr_line[5:7]), tsr_line[7], tsr_line[8]
         easting, northing = float(i[8]), float(i[9])
-        township_dir = CheckIfPlatDataCorrect.translateDirectionToNumber('township', township_dir)
-        range_dir = CheckIfPlatDataCorrect.translateDirectionToNumber('rng', range_dir)
-        meridian = CheckIfPlatDataCorrect.translateDirectionToNumber('baseline', meridian)
+        township_dir = translateDirectionToNumber('township', township_dir)
+        range_dir = translateDirectionToNumber('rng', range_dir)
+        meridian = translateDirectionToNumber('baseline', meridian)
         conc = str(section) + str(township) + str(township_dir) + str(range_val) + str(range_dir) + str(meridian)
 
         return_lst.append([section, township, township_dir, range_val, range_dir, meridian, easting, northing, 89230983, conc])
     return return_lst
+
+def translateNumberToDirection(variable, val):
+    if variable == 'rng':
+        if val == '2':
+            return 'W'
+        elif val == '1':
+            return 'E'
+    elif variable == 'township':
+        if val == '2':
+            return 'S'
+        elif val == '1':
+            return 'N'
+    elif variable == 'baseline':
+        if val == '2':
+            return 'U'
+        elif val == '1':
+            return 'S'
+    elif variable == 'alignment':
+        if val == '1':
+            return 'SE'
+        elif val == '2':
+            return 'NE'
+        elif val == '3':
+            return 'SW'
+        elif val == '4':
+            return 'NW'
+
+def translateDirectionToNumber(variable, val):
+    if variable == 'rng':
+        if val == 'W':
+            return '2'
+        elif val == 'E':
+            return '1'
+        else:
+            return val
+    elif variable == 'township':
+        if val == 'S':
+            return '2'
+        elif val == 'N':
+            return '1'
+        else:
+            return val
+    elif variable == 'baseline':
+        if val == 'U':
+            return '2'
+        elif val == 'S':
+            return '1'
+        else:
+            return val
+    elif variable == 'alignment':
+        if val == 'SE':
+            return '1'
+        elif val == 'NE':
+            return '2'
+        elif val == 'SW':
+            return '3'
+        elif val == 'NW':
+            return '4'
+        else:
+            return val
 
 
 renderAGRCDataDown()

@@ -17,6 +17,7 @@ import ProcessBHLLocation
 from itertools import chain
 from matplotlib import pyplot as plt
 import itertools
+import EditAGRCData
 
 def rewriteDataLatLon(lst):
     bad_lst = ['2709S19ES', "2809S19ES", "1309S19ES", "0105S02EU", "0604S03EU", '1404S02EU', "1605S02EU", "0104S04WU", "1309S19ES", "1105S02EU", "1309S19ES", "0805S03EU", "0104S04WU", "1605S02EU", "0104S04WU", "1105S02EU", "0104S04WU", "1605S02EU"]
@@ -290,7 +291,7 @@ def compareGISDataToParsed(df):
         sql_conc_str = str(df_parsed[i][0][0]) + str(df_parsed[i][0][1]) + str(df_parsed[i][0][2]) + str(df_parsed[i][0][3]) + str(df_parsed[i][0][4]) + str(df_parsed[i][0][5])
         # sql_string_indexes = [str(df_parsed[i][0][0]), str(df_parsed[i][0][1]), str(df_parsed[i][0][2]), str(df_parsed[i][0][3]), str(df_parsed[i][0][4]), str(df_parsed[i][0][5])]
         df_tester = df[df['new_code'] == sql_conc_str][['Easting', 'Northing']].to_numpy().tolist()
-        print("\n______________________________________________________________\n", sql_conc_str)
+        # print("\n______________________________________________________________\n", sql_conc_str)
         high_prob, mid_prob = compareDirect(df_tester, df_parsed_coords)
         if high_prob:
             high_prob = [sql_string_indexes + r for r in high_prob]
@@ -300,14 +301,15 @@ def compareGISDataToParsed(df):
             mid_prob_lst.append(mid_prob)
     high_prob_lst = [i for i in high_prob_lst if i]
     mid_prob_lst = [i for i in mid_prob_lst if i]
-    # ma.printLine(high_prob_lst)
-    # ma.printLine(mid_prob_lst)
+    print(len(high_prob_lst), len(mid_prob_lst))
     pd.set_option('display.max_columns', None)
 
 
 def compareDirect(lst1, lst2):
     high_prob = []
     mid_prob = []
+    output = EditAGRCData.findCorners(lst1)
+
     lst1 = ProcessCoordData.getPlatBounds(lst1)[1:]
     lst1 = list(chain.from_iterable(lst1))
     new_points_1, new_points_2 = [], []
@@ -367,7 +369,7 @@ def compareDirect(lst1, lst2):
     overlap1 = round((total_area / area_poly_1) * 100, 3)
     overlap2 = round((total_area / area_poly_2) * 100, 3)
     overlap_avg = round((overlap1 + overlap2) / 2, 3)
-    if 100.5 > overlap_avg > 99.5:
+    if 101 > overlap_avg > 99:
         # if 102 > overlap1 > 98 and 102 > overlap2 > 98:
         # print('total_diff1', total_diff)
         # print('total_diff2', total_diff2)
@@ -376,7 +378,7 @@ def compareDirect(lst1, lst2):
 
 
         high_prob = lst2
-    elif 101 > overlap_avg > 100.5 or 99.5 > overlap_avg > 99:
+    if 103 > overlap_avg > 97:
         fig, ax1 = plt.subplots()
         x1, y1 = [i[0] for i in new_points_1], [i[1] for i in new_points_1]
         x2, y2 = [i[0] for i in new_points_2], [i[1] for i in new_points_2]
@@ -384,6 +386,7 @@ def compareDirect(lst1, lst2):
         ax1.plot(x2, y2, c='#878D92')
         # plt.show()
         mid_prob = lst2
+
     return high_prob, mid_prob
 
 
@@ -424,127 +427,18 @@ def drawData():
     conn, cursor = sqlConnect()
     len_lst = []
     sql_lst, sql_conc = parseDatabaseForDataWithSectionsAndSHL(cursor)
-    # df = pd.read_csv("All_Data_Lat_Lon.csv", encoding="ISO-8859-1")
-    df = pd.read_csv("LatLonEdited.csv", encoding="ISO-8859-1")
+    df = pd.read_csv("All_Data_Lat_Lon.csv", encoding="ISO-8859-1")
+    # df = pd.read_csv("LatLonEdited.csv", encoding="ISO-8859-1")
     compareGISDataToParsed(df)
     pd.set_option('display.max_columns', None)
-    many_pts_lst, conc_many_lst, conc_bad = [], [642312, 142422, 27921911, 1652212, 1152212, 28921911, 1442212, 13921911, 152212, 852312], [2542222, 652312, 3142212, 3642422, 2632222, 4922111, 3342622, 1822322, 3242622, 30722311, 2342212, 3442622, 722322, 22921511, 15921511, 31922111, 5822011,
-                                                                                                                                            1922322, 752312, 30722011, 3042212, 2532222, 8822011, 3532422, 242422, 2442212, 1342212, 552212, 1842312, 13821611, 642312]
-    # many_pts_lst, conc_many_lst, conc_bad = [], [], []
+    # many_pts_lst, conc_many_lst, conc_bad = [], [642312, 142422, 27921911, 1652212, 1152212, 28921911, 1442212, 13921911, 152212, 852312], [2542222, 652312, 3142212, 3642422, 2632222, 4922111, 3342622, 1822322, 3242622, 30722311, 2342212, 3442622, 722322, 22921511, 15921511, 31922111, 5822011,
+    #                                                                                                                                         1922322, 752312, 30722011, 3042212, 2532222, 8822011, 3532422, 242422, 2442212, 1342212, 552212, 1842312, 13821611, 642312]
+    # # many_pts_lst, conc_many_lst, conc_bad = [], [], []
     fig, ax = plt.subplots()
-    # for i in range(len(sql_lst)):
-    #     # print(sql_lst[i])
-    #     sql_lst[i][0], sql_lst[i][1], sql_lst[i][3] = int(sql_lst[i][0]), int(sql_lst[i][1]), int(sql_lst[i][3])
-    #     many_pts_conc = int(float(str(sql_lst[i][0]) + str(sql_lst[i][1]) + str(sql_lst[i][2]) + str(sql_lst[i][3]) + str(sql_lst[i][4]) + str(sql_lst[i][5])))
-    #     sql_lst[i][2] = translateNumberToDirection('township', str(int(sql_lst[i][2])))
-    #     sql_lst[i][4] = translateNumberToDirection('rng', str(int(sql_lst[i][4])))
-    #     sql_lst[i][5] = translateNumberToDirection('baseline', str(int(sql_lst[i][5])))
-    #     if len(str(sql_lst[i][0])) == 1:
-    #         sql_lst[i][0] = "0" + str(sql_lst[i][0])
-    #     if len(str(sql_lst[i][1])) == 1:
-    #         sql_lst[i][1] = "0" + str(sql_lst[i][1])
-    #     if len(str(sql_lst[i][3])) == 1:
-    #         sql_lst[i][3] = "0" + str(sql_lst[i][3])
-    #     sql_conc_str = str(sql_lst[i][0]) + str(sql_lst[i][1]) + str(sql_lst[i][2]) + str(sql_lst[i][3]) + str(sql_lst[i][4]) + str(sql_lst[i][5])
-    #     df_tester = df[df['new_code'] == sql_conc_str][['Easting', 'Northing']].to_numpy().tolist()
-    #     shl = sql_lst[i][8:10]
-    #     x, y = [q[0] for q in df_tester], [q[1] for q in df_tester]
-    #     if df_tester:
-    #         output = ProcessCoordData.getPlatBounds(df_tester)[1:]
-    #         sum_val = sum([len(i) for i in output])
-    #         len_lst.append([sum_val, sql_conc_str])
-    #         if sum_val > 30:
-    #             if many_pts_conc in conc_many_lst:
-    #                 for r in range(len(df_tester)):
-    #                     # many_pts_lst.append([many_pts_conc] + df_tester[r])
-    #                     many_pts_lst.append([str(int(float(sql_lst[i][0]))), str(int(float(sql_lst[i][1]))), str(sql_lst[i][2]), str(int(float(sql_lst[i][3]))), str(sql_lst[i][4]), str(sql_lst[i][5]), df_tester[r][0], df_tester[r][1], str(sql_lst[i][10])])
-    #
-    #             if many_pts_conc not in conc_many_lst and many_pts_conc not in conc_bad:
-    #                 fig, ax1 = plt.subplots()
-    #                 ax1.plot(x, y, c='red')
-    #                 ax1.scatter(x, y, c='red')
-    #                 plt.show()
-    #                 prompt = input("Enter this data?")
-    #                 print(many_pts_conc)
-    #                 if prompt == 'y':
-    #                     conc_many_lst.append(many_pts_conc)
-    #                     for r in range(len(df_tester)):
-    #                         many_pts_lst.append([str(int(float(sql_lst[i][0]))), str(int(float(sql_lst[i][1]))), str(sql_lst[i][2]), str(int(float(sql_lst[i][3]))),str(sql_lst[i][4]), str(sql_lst[i][5]), df_tester[r][0], df_tester[r][1], str(sql_lst[i][10])])
-    #                         # many_pts_lst.append([many_pts_conc] + df_tester[r])
-    #                 else:
-    #                     print(conc_bad)
-    #                     conc_bad.append(many_pts_conc)
-    # print(many_pts_conc)
-    # if determineIfInside(shl, df_tester):
-    #     if max(x) - min(x) < 10000:
-    #         a = df_tester
-    #         b = df_tester[1:] + [df_tester[0]]
-    #         side_parameters = [float(sql_lst[i][-4]), float(sql_lst[i][-2])]
-    #         a = np.array(a)
-    #         b = np.array(b)
-    #         p = np.array(shl)
-    #         out = lineseg_dists(p, a, b)
-    #         out = out.tolist()
-    #         if checkSides(out, side_parameters):
-    #             ax.plot(x, y, c='red')
-    #             ax.scatter([shl[0]], [shl[1]], c='red')
 
-    # NS_distance, EW_distance = findLocationData(d_lst[j], shl)
-    # if int(float(label_lst[j][:2])) == sql_lst[i][0] and int(float(label_lst[j][2:4])) == sql_lst[i][1] and int(float(label_lst[j][5:7])) == sql_lst[i][3]:
-
-    # plt.show()
     len_lst = sorted(len_lst, key=lambda r: r[0])
 
     # saveData(many_pts_lst)
-
-    # new_row = {'Section': i[0],
-    #            'Township': int(float(i[1])),
-    #            'Township Direction': i[2],
-    #            'Range': int(float(i[3])),
-    #            'Range Direction': i[4],
-    #            'Baseline': i[5],
-    #            'Easting': i[6],
-    #            'Northing': i[7],
-    #            'API': i[8]}
-
-    # d, d_lst = {}, []
-    # d_label, label_lst = {}, []
-    # for row in df_lst:
-    #     re_data = row[8:10]
-    #     if row[-1] not in d:
-    #         d_label[row[-1]] = []
-    #         d[row[-1]] = []
-    #     d[row[-1]].append(re_data)
-    #     d_label[row[-1]].append(row[-1])
-    # d_lst = [key for item, key in d.items()]
-    # label_lst = [key for item, key in d_label.items()]
-    # # label_lst = [list(set(i))[0] for i in label_lst]
-    #
-    # for j in range(len(d_lst)):
-    #     for i in range(len(sql_lst)):
-    #         shl = sql_lst[i][8:10]
-    #         try:
-    #             if determineIfInside(shl, d_lst[j]):
-    #                 x, y = [q[0] for q in d_lst[j]], [q[1] for q in d_lst[j]]
-    #                 if max(x) - min(x) < 10000:
-    #                     a = d_lst[j]
-    #                     b = d_lst[j][1:] + [d_lst[j][0]]
-    #                     a = np.array(a)
-    #                     b = np.array(b)
-    #                     p = np.array(shl)
-    #                     out = lineseg_dists(p, a, b)
-    #                     out = out.tolist()
-    #                     fig, ax = plt.subplots()
-    #                     ax.plot(x, y, c='red')
-    #                     ax.scatter(x, y, c='red')
-    #                     ax.scatter([shl[0]], [shl[1]], c='red')
-    #                     # NS_distance, EW_distance = findLocationData(d_lst[j], shl)
-    #                     # if int(float(label_lst[j][:2])) == sql_lst[i][0] and int(float(label_lst[j][2:4])) == sql_lst[i][1] and int(float(label_lst[j][5:7])) == sql_lst[i][3]:
-    #
-    #                     plt.show()
-    #         except ValueError:
-    #             pass
-
 
 def checkSides(lst, sides):
     ns_side = []
@@ -598,7 +492,6 @@ def lineseg_dists(p, a, b):
 
 
 def mainProcessRemoveDupes():
-
     df = pd.read_csv("UTMTrueData.csv", encoding="ISO-8859-1")
     pd.set_option('display.max_columns', None)
     df_lst = df.to_numpy().tolist()
@@ -886,5 +779,5 @@ def convertAllPosibleStringsToFloats(lst):
 
 
 # mainProcessRemoveDupes()
-# drawData()
+drawData()
 # renderAGRCDataDown()
