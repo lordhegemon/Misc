@@ -1,12 +1,14 @@
 import pyodbc
 import pandas as pd
 import numpy as np
+
+import ModuleAgnostic
 import ModuleAgnostic as ma
 
 
 def main():
     conn, cursor = sqlConnect()
-    df_parsed = pd.read_csv("LatLonEdited.csv", encoding="ISO-8859-1")
+    df_parsed = pd.read_csv("PlatSidesAll.csv", encoding="ISO-8859-1")
     # print(len(df_parsed))
 
     pd.set_option('display.max_columns', None)
@@ -16,7 +18,6 @@ def main():
     # unique_col = df_parsed.new_code.unique().tolist()
     data_out = sqlRun(cursor)
     data_out = list(set(data_out))
-    # ma.printLine(data_out)
     # print(list(df_parsed.columns.values))
     #
     # df_parsed = translateDF(df_parsed)
@@ -29,9 +30,10 @@ def main():
     # print(df_parsed)
     df_parsed['is_present'] = np.where(df_parsed['ConcCode'].isin(data_out), True, False)
     df_parsed_test = df_parsed.query('is_present == True')
+    print(df_parsed_test)
     # print(len(df_parsed_test))
     unique_col = df_parsed_test.ConcCode.unique().tolist()
-    # df_parsed_test.to_csv("LatLonEdited.csv")
+    df_parsed_test.to_csv("PlatSidesAll.csv")
 
 
 def checkIfDataPresent(data, lst):

@@ -27,7 +27,6 @@ def renderAGRCDataDown():
     new_sides = []
     df_parsed = pd.read_csv("All_Data_Lat_Lon.csv", encoding="ISO-8859-1")
     df_parsed = df_parsed.to_numpy().tolist()
-
     df_parsed = rewriteDataLatLon(df_parsed)
     print("number of original points", len(df_parsed))
     pd.set_option('display.max_columns', None)
@@ -42,7 +41,7 @@ def renderAGRCDataDown():
     tot_runner = 0
     counter = 0
     for i in df_parsed:
-        # print("_____________________________________________\n", counter)
+
         tot_runner += len(i)
         data_set = [r[6:8] for r in i]
         tsr_data = i[0][:6]
@@ -56,20 +55,28 @@ def renderAGRCDataDown():
         counter += 1
 
     new_sides = ma.removeDupesListOfLists(new_sides)
+    # ma.printLine(new_sides)
     # print('new sides')
-    # saveData(new_sides)
+    saveData(new_sides)
     # print('done')
 
 
 def saveData(lst):
-    lst = [i[:8] for i in lst]
-    df = pd.DataFrame(columns=['Section', 'Township', 'Township Direction', 'Range', 'Range Direction', 'Baseline', 'Easting', 'Northing', 'ConcCode', 'AGRC Version'])
+    # lst = [i[:8] for i in lst]
+    df = pd.DataFrame(columns=['Section', 'Township', 'Township Direction', 'Range', 'Range Direction', 'Baseline', 'Easting', 'Northing', 'Direction', 'ConcCode', 'AGRC Version'])
     counter = 0
 
     df_test = [{'Section': i[0], 'Township': int(float(i[1])), 'Township Direction': i[2], 'Range': int(float(i[3])),
-                'Range Direction': i[4], 'Baseline': i[5], 'Easting': i[6], 'Northing': i[7], 'ConcCode': makeConcCode(i), 'AGRC Version': 'AGRC V.1'} for i in lst]
-    df = pd.DataFrame(df_test, columns=['Section', 'Township', 'Township Direction', 'Range', 'Range Direction', 'Baseline', 'Easting', 'Northing', 'ConcCode', 'AGRC Version'])
-
+                'Range Direction': i[4], 'Baseline': i[5], 'Easting': i[6], 'Northing': i[7], 'Direction': i[8], 'ConcCode': makeConcCode(i), 'AGRC Version': 'AGRC V.1'} for i in lst]
+    df = pd.DataFrame(df_test, columns=['Section', 'Township', 'Township Direction', 'Range', 'Range Direction', 'Baseline', 'Easting', 'Northing', 'Direction', 'ConcCode', 'AGRC Version'])
+    test_data = df.to_numpy().tolist()
+    # ma.printLine(test_data)
+    fig, ax1 = plt.subplots()
+    for i in test_data:
+        if i[-2] == "3637S04WS":
+            ax1.scatter([i[6]], [i[7]], c='red', s=25)
+            print(i)
+    # print(df)
     # print(df)
     # for i in lst:
     #     if counter % 1000 == 0:
@@ -87,8 +94,8 @@ def saveData(lst):
     #     df = df.append(new_row, ignore_index=True)
     #     counter += 1
     # df.to_csv('OddballSections.csv', index=False)
-    df.to_csv('LatLonEdited.csv', index=False)
-
+    # df.to_csv('PlatSidesAll.csv', index=False)
+    plt.show()
 
 def makeConcCode(data):
     data[0] = int(float(data[0]))
@@ -194,16 +201,15 @@ def checkForPointsTooCloseToCorners(lst, centroid, o_lst, counter_def):
             else:
                 counter += 1
         pass_counter += 1
-        if pass_counter == 10:
-            fig, ax1 = plt.subplots()
-            x1, y1 = [i[0] for i in corners], [i[1] for i in corners]
-            x2, y2 = [i[0] for i in lst], [i[1] for i in lst]
-            ax1.scatter(x1, y1, c='blue')
-            ax1.scatter(x2, y2, c='black', s=5)
-            plt.show()
+        # if pass_counter == 10:
+            # fig, ax1 = plt.subplots()
+            # x1, y1 = [i[0] for i in corners], [i[1] for i in corners]
+            # x2, y2 = [i[0] for i in lst], [i[1] for i in lst]
+            # ax1.scatter(x1, y1, c='blue')
+            # ax1.scatter(x2, y2, c='black', s=5)
+            # plt.show()
     lst = sorted(lst, key=lambda r: r[2], reverse=True)
-    # if counter_def == 442:
-    #     ma.printLine(lst)
+
     corners = lst[:4]
     corners = checkClockwisePts(corners)
 
@@ -230,7 +236,6 @@ def arrangeDirectionData(corner, lst, label):
     if label == 'south':
         xy1, xy2 = corner[1], corner[0]
     angles = [xy1[-1], xy2[-1]]
-
     found_side_data.append(xy1)
     for i in lst:
         if label == 'west':
@@ -240,7 +245,6 @@ def arrangeDirectionData(corner, lst, label):
             if max(angles) > i[-1] > min(angles):
                 found_side_data.append(i)
     found_side_data.append(xy2)
-    tot_distance = ma.findSegmentLength(xy1[:2], xy2[:2])
     if len(found_side_data) > 5:
         for k in range(5):
             distance_lst = []
@@ -254,10 +258,6 @@ def arrangeDirectionData(corner, lst, label):
     else:
         new_sides = found_side_data
     found_side_data = new_sides
-
-    # if label == 'west':
-    #     for i in range(len(found_side_data)-1):
-    #         findNewLengthAndAngle(found_side_data[i][:2], found_side_data[i+1][:2], label, found_side_data)
 
     return found_side_data
 
@@ -348,7 +348,31 @@ def cornerGeneratorProcess(data_lengths):
     return corners
 
 
+
+def organizeBoundsToPoints(bounds):
+    nw = [bounds[0], bounds[3]]
+    ne = [bounds[2], bounds[3]]
+    sw = [bounds[0], bounds[1]]
+    se = [bounds[2], bounds[1]]
+    return nw, ne, sw, se
+
+
+def determinePointProximity(bounds, lst):
+    distance_lst = []
+    for i in bounds:
+        min_distance = 9999999
+        dist_pt = []
+        for j in lst:
+            distance = ma.findSegmentLength(i, j)
+            if distance < min_distance:
+                min_distance = distance
+                dist_pt = j
+        distance_lst.append(dist_pt)
+    return distance_lst
+
+
 def findCorners(lst):
+
     try:
         lst = checkClockwisePts(lst)
     except TypeError:
@@ -384,8 +408,15 @@ def findCorners(lst):
     north_side = arrangeDirectionData(corners, data_lengths, 'north')
     west_side = arrangeDirectionData(corners, data_lengths, 'west')
     south_side = arrangeDirectionData(corners, data_lengths, 'south')
-    all_data = west_side[1:] + north_side[1:] + east_side[1:] + south_side[1:]
+    west_side = [i[:2] + ["WEST"] for i in west_side]
+    east_side = [i[:2] + ["EAST"] for i in east_side]
+    north_side = [i[:2] + ["NORTH"] for i in north_side]
+    south_side = [i[:2] + ["SOUTH"] for i in south_side]
 
+
+    # all_data = west_side[1:] + north_side[1:] + east_side[1:] + south_side[1:]
+    all_data = west_side + north_side + east_side + south_side
+    # ma.printLine(all_data)
 
     # fig, ax1 = plt.subplots()
     # # # x1, y1 = [i[0] for i in found_data_theoretical_pts], [i[1] for i in found_data_theoretical_pts]
@@ -462,29 +493,6 @@ def findCorners(lst):
     #     plt.show()
 
     return all_data
-
-
-def organizeBoundsToPoints(bounds):
-    nw = [bounds[0], bounds[3]]
-    ne = [bounds[2], bounds[3]]
-    sw = [bounds[0], bounds[1]]
-    se = [bounds[2], bounds[1]]
-    return nw, ne, sw, se
-
-
-def determinePointProximity(bounds, lst):
-    distance_lst = []
-    # ma.printLine(lst)
-    for i in bounds:
-        min_distance = 9999999
-        dist_pt = []
-        for j in lst:
-            distance = ma.findSegmentLength(i, j)
-            if distance < min_distance:
-                min_distance = distance
-                dist_pt = j
-        distance_lst.append(dist_pt)
-    return distance_lst
 
 
 def graph_data(lst_all, n_data, s_data, e_data, w_data):

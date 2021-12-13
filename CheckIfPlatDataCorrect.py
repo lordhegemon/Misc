@@ -110,15 +110,13 @@ def rewriteDataLatLon(lst):
 #     # print('number of points edited down', counter_edited)
 #     # print('already five length points', counter_unedited)
 #     # print('total points inferred', counter_edited + counter_unedited)
-#     print('total points found', len(new_sides))
-#     # ma.printLine(new_sides)
+
 #
 #
 # def sortCorners(corners_lst):
 #     corners_left = [i for i in corners_lst if i[-1] < 0]
 #     corners_right = [i for i in corners_lst if i[-1] > 0]
-#     # ma.printLine(corners_left)
-#     # ma.printLine(corners_right)
+
 #     corners_left = sorted(corners_left, key=lambda r: r[1])
 #     corners_right = sorted(corners_right, key=lambda r: r[1], reverse=True)
 #     corners_out = corners_left + corners_right
@@ -146,7 +144,7 @@ def rewriteDataLatLon(lst):
 #             found_side_data.append(i[:2])
 #     found_side_data.append(xy2)
 #
-#     # ma.printLine(found_side_data)
+
 #
 #     new_sides = []
 #     if len(found_side_data) > 5:
@@ -161,7 +159,7 @@ def rewriteDataLatLon(lst):
 #     else:
 #         new_sides = found_side_data
 #     found_side_data = new_sides
-#     # ma.printLine(found_side_data)
+
 #
 #     return found_side_data
 #     pass
@@ -183,7 +181,7 @@ def rewriteDataLatLon(lst):
 #     north_side = findSideValues(lst, corners, 'north')
 #     west_side = findSideValues(lst, corners, 'west')
 #     south_side = findSideValues(lst, corners, 'south')
-#     ma.printLine(south_side)
+
 #     # fig, ax1 = plt.subplots()
 #     # x1, y1 = [i[0] for i in lst], [i[1] for i in lst]
 #     # x2, y2 = [i[0] for i in sides_data], [i[1] for i in sides_data]
@@ -193,7 +191,7 @@ def rewriteDataLatLon(lst):
 #
 #
 #
-#     # ma.printLine(corners)
+
 #     # for xy1, xy2 in zip(lst, lst[1:]):
 #     #     output = GatherPlatDataSet.slopeFinder2(xy1, xy2)
 #     #     data_group.append([math.degrees(math.atan(1/output[0]))] + xy1)
@@ -209,8 +207,7 @@ def rewriteDataLatLon(lst):
 #     #         ns_lst.append(data_group[i][1:])
 #     #     else:
 #     #         ew_lst.append(data_group[i][1:])
-#     # ma.printLine(ns_lst)
-#     # ma.printLine(ew_lst)
+
 #     # ns_1, ns_2 = [i[0] for i in ns_lst], [i[1] for i in ns_lst]
 #     # ew_1, ew_2 = [i[0] for i in ew_lst], [i[1] for i in ew_lst]
 #     # print(min(ns_1), max(ns_1),max(ns_1)-min(ns_1) )
@@ -359,32 +356,14 @@ def compareDirect(lst1, lst2):
             total_diff2 += i.area
     else:
         total_diff2 += output_diff2.area
-        # point_i = list(zip(*i.exterior.coords.xy))
-        # point_i = [list(j) for j in point_i]
-        # x1, y1 = [i[0] for i in point_i], [i[1] for i in point_i]
-        # ax1.plot(x1, y1, c=colors[counter])
 
-        # counter += 1
 
     overlap1 = round((total_area / area_poly_1) * 100, 3)
     overlap2 = round((total_area / area_poly_2) * 100, 3)
     overlap_avg = round((overlap1 + overlap2) / 2, 3)
     if 101 > overlap_avg > 99:
-        # if 102 > overlap1 > 98 and 102 > overlap2 > 98:
-        # print('total_diff1', total_diff)
-        # print('total_diff2', total_diff2)
-        # print('total area', total_area)
-        # print('total difference avg', overlap_avg)
-
-
         high_prob = lst2
     if 103 > overlap_avg > 97:
-        fig, ax1 = plt.subplots()
-        x1, y1 = [i[0] for i in new_points_1], [i[1] for i in new_points_1]
-        x2, y2 = [i[0] for i in new_points_2], [i[1] for i in new_points_2]
-        ax1.plot(x1, y1, c='#B42F32')
-        ax1.plot(x2, y2, c='#878D92')
-        # plt.show()
         mid_prob = lst2
 
     return high_prob, mid_prob
@@ -427,14 +406,14 @@ def drawData():
     conn, cursor = sqlConnect()
     len_lst = []
     sql_lst, sql_conc = parseDatabaseForDataWithSectionsAndSHL(cursor)
-    df = pd.read_csv("All_Data_Lat_Lon.csv", encoding="ISO-8859-1")
+    df = pd.read_csv("LatLonEdited.csv", encoding="ISO-8859-1")
     # df = pd.read_csv("LatLonEdited.csv", encoding="ISO-8859-1")
     compareGISDataToParsed(df)
     pd.set_option('display.max_columns', None)
     # many_pts_lst, conc_many_lst, conc_bad = [], [642312, 142422, 27921911, 1652212, 1152212, 28921911, 1442212, 13921911, 152212, 852312], [2542222, 652312, 3142212, 3642422, 2632222, 4922111, 3342622, 1822322, 3242622, 30722311, 2342212, 3442622, 722322, 22921511, 15921511, 31922111, 5822011,
     #                                                                                                                                         1922322, 752312, 30722011, 3042212, 2532222, 8822011, 3532422, 242422, 2442212, 1342212, 552212, 1842312, 13821611, 642312]
     # # many_pts_lst, conc_many_lst, conc_bad = [], [], []
-    fig, ax = plt.subplots()
+    # fig, ax = plt.subplots()
 
     len_lst = sorted(len_lst, key=lambda r: r[0])
 
