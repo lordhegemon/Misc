@@ -12,7 +12,7 @@ def main():
     data = df_parsed.to_numpy().tolist()
     conc_lst = []
     d = {}
-
+    pd.set_option('display.max_columns', None)
     for i in data:
         if i[9] not in d:
             d[i[9]] = []
@@ -25,8 +25,10 @@ def main():
     conc_lst = [i for i in conc_lst if i]
     # ma.printLine(conc_lst)
     df_test = [{'Section': i[0], 'Township': int(float(i[1])), 'Township Direction': i[2], 'Range': int(float(i[3])),
-                'Range Direction': i[4], 'Baseline': i[5], 'Side': i[6], 'Length': i[7], 'Degrees': i[8], 'Minutes': i[9], 'Seconds': i[10], 'North Reference':i[12], 'Conc': i[13], 'Version':i[14]} for i in conc_lst]
-    df = pd.DataFrame(df_test, columns=['Section', 'Township', 'Township Direction', 'Range', 'Range Direction', 'Side', 'Easting', 'Length', 'Degrees', 'Minutes', 'Seconds', 'North Reference', 'Conc', 'Version'])
+                'Range Direction': i[4], 'Baseline': i[5], 'Side': i[6], 'Length': i[7], 'Degrees': i[8], 'Minutes': i[9], 'Seconds': i[10], 'Direction': i[11], 'North Reference':i[12], 'Conc': i[13], 'Version':i[14]} for i in conc_lst]
+    # ma.printLine(df_test)
+    df = pd.DataFrame(df_test, columns=['Section', 'Township', 'Township Direction', 'Range', 'Range Direction', 'Baseline', 'Side', 'Length', 'Degrees', 'Minutes', 'Seconds', 'Direction', 'North Reference', 'Conc', 'Version'])
+    # print(df)
     df.to_csv('PlatSides.csv', index=False)
 
 def addMissingPts(lst):

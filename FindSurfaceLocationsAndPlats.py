@@ -49,17 +49,13 @@ def mainProcess():
     # justConvertSidesToPoints(lst_parsed_lst)
     excel_parsed_for_good_closure_lst, excel_parsed_df = findDataInExistingExcelWithCorrectClosure(folder)
     matcher_lst_1 = matcherDF1(excel_parsed_df, data_lst)
-    # ma.printLine(matcher_lst_1)
     df_noclosure, df_base_lst = transformDatabaseQueryToDataframe(matcher_lst_1)
-
     matcher_lst_2 = matcherDF2(lst_parsed_df, data_lst)
-    # ma.printLine(matcher_lst_2)
-    df_parsed_fin, df_parsed_fin_lst = transformDatabaseQueryToDataframe(matcher_lst_2)
-    # ma.printLine(df_parsed_fin_lst)
-    df_merged, df_merged_lst = mergeBothPages(df_base_lst, df_parsed_fin_lst)
-    ma.printLine(df_merged_lst)
-    lst = transformData2(df_merged_lst)
 
+    df_parsed_fin, df_parsed_fin_lst = transformDatabaseQueryToDataframe(matcher_lst_2)
+    # ma.printLine()
+    df_merged, df_merged_lst = mergeBothPages(df_base_lst, df_parsed_fin_lst)
+    lst = transformData2(df_merged_lst)
     # compareConcLists(data_lst, excel_parsed_df)
 
     # df_all_lst = df_all.to_numpy().tolist()
@@ -170,7 +166,6 @@ def justConvertSidesToPoints(lst):
         else:
             counter += 1
     sides_grouped = [i for i in sides_grouped if i]
-    # ma.printLine(sides_grouped)
     # for i in sides_grouped:
     #     coord_data_lst.append([])
     #     coord_data_lst_grid.append([])
@@ -180,7 +175,6 @@ def justConvertSidesToPoints(lst):
     #     coordLst = getCoordsLst(data_converted, [0.0, 0.0])
     #     eqLst, coordLst, cornersLst = linesMain(coordLst, dir_lst_flatten)
     #     surfaceLoc = i[0][-4:]
-    #     print(i[0])
     #     surfaceCoord, xMin, xMax, yMin, yMax = GatherPlatDataSet.getQuad(coordLst, surfaceLoc)
     #     surfaceCoord = [i * 0.3048 for i in surfaceCoord]
     #     shl_coords.append([i[0][16], i[0][17], i[0][13]])
@@ -247,11 +241,10 @@ def matcherDF1(df, lst):
         lst[i][6] = lst[i][6][0]
         if lst[i][7] == 'None':
             lst[i][7] = 0
-        lesser_conc = str(int(float(lst[i][0]))) + str(int(float(lst[i][1]))) + lst[i][2] + str(int(float(lst[i][3]))) + lst[i][4] + lst[i][5]
+        lesser_conc = str(int(float(lst[i][0]))) + str(int(float(lst[i][1]))) + str(lst[i][2]) + str(int(float(lst[i][3]))) + str(lst[i][4]) + str(lst[i][5])
         re_conc = re.compile(r"^" + re.escape(lesser_conc) + r"\D")
         find = df[(df['Concatenation'].str.contains(re_conc))]
         if len(find) > 0:
-            print(i)
             new_line = find.to_numpy().tolist()
             if lesser_conc not in conc_lst:
                 for j in range(len(new_line)):
@@ -267,6 +260,7 @@ def matcherDF1(df, lst):
 
 
 def matcherDF2(df, lst):
+    # ma.printLine(lst)
     found_data = []
     conc_lst = []
     for i in range(len(lst)):
@@ -286,7 +280,7 @@ def matcherDF2(df, lst):
                     found_data.append(new_line[j])
                 conc_lst.append(lesser_conc)
     found_data = ma.oneToMany(found_data, 16)
-
+    # ma.printLine(found_data)
     return found_data
 
 
@@ -489,8 +483,6 @@ def transformData2(lst):
     coord_data_lst = []
     coord_data_lst_grid = []
     shl_coords = []
-    all_coord_data = []
-    ma.printLine(lst)
     for i in lst:
         coord_data_lst.append([])
         coord_data_lst_grid.append([])
@@ -525,48 +517,36 @@ def transformData2(lst):
             pass
 
     coord_data_lst = [i for i in coord_data_lst if i]
+    ma.printLine(coord_data_lst)
     coord_data_lst_grid = [i for i in coord_data_lst_grid if i]
     all_data = coord_data_lst + coord_data_lst_grid
-    for i in range(len(coord_data_lst)):
-        start, end = coord_data_lst[i][0][6:8], coord_data_lst[i][-1][6:8]
-        closure_x, closure_y = round(end[0] - start[0], 4), round(end[1] - start[1], 4)
-        if abs(closure_x) > 1 or abs(closure_y) > 1:
-            coord_data_lst[i][-1] = coord_data_lst[i][0]
-    for i in range(len(coord_data_lst_grid)):
-        start, end = coord_data_lst_grid[i][0][6:8], coord_data_lst_grid[i][-1][6:8]
-        closure_x, closure_y = round(end[0] - start[0], 4), round(end[1] - start[1], 4)
-        if abs(closure_x) > 1 or abs(closure_y) > 1:
-            coord_data_lst_grid[i][-1] = coord_data_lst_grid[i][0]
+    # for i in range(len(coord_data_lst)):
+    #     start, end = coord_data_lst[i][0][6:8], coord_data_lst[i][-1][6:8]
+    #     closure_x, closure_y = round(end[0] - start[0], 4), round(end[1] - start[1], 4)
+    #     if abs(closure_x) > 1 or abs(closure_y) > 1:
+    #         coord_data_lst[i][-1] = coord_data_lst[i][0]
+    # for i in range(len(coord_data_lst_grid)):
+    #     start, end = coord_data_lst_grid[i][0][6:8], coord_data_lst_grid[i][-1][6:8]
+    #     closure_x, closure_y = round(end[0] - start[0], 4), round(end[1] - start[1], 4)
+    #     if abs(closure_x) > 1 or abs(closure_y) > 1:
+    #         coord_data_lst_grid[i][-1] = coord_data_lst_grid[i][0]
 
     zp = ZoomPan()
     # fig, ax = plt.subplots()
-    figZoom, figPan = zp.zoom_factory(ax, base_scale=1.1), zp.pan_factory(ax)
+    # figZoom, figPan = zp.zoom_factory(ax, base_scale=1.1), zp.pan_factory(ax)
 
     shl_coords = [list(t) for t in set(tuple(element) for element in shl_coords)]
     all_x = [j[0] for j in shl_coords]
     all_y = [j[1] for j in shl_coords]
     all_text = [j[2] for j in shl_coords]
-    # ax.scatter(all_x, all_y, c='red')
-
-    # for j in range(len(shl_coords)):
-    #     ax.text(all_x[j], all_y[j] + 200, all_text[j])
-    for i in coord_data_lst:
-        all_x = [j[6] for j in i]
-        all_y = [j[7] for j in i]
-        # ax.plot(all_x, all_y, c='red')
-
-    for i in coord_data_lst_grid:
-        all_x = [j[6] for j in i]
-        all_y = [j[7] for j in i]
-        # ax.plot(all_x, all_y, c='blue')
 
     # ax.scatter([surfaceCoord[0]], [surfaceCoord[1]], c='black')
     coordLst_unmerged = list(itertools.chain.from_iterable(coord_data_lst))
     coord_data_lst_grid_unmerged = list(itertools.chain.from_iterable(coord_data_lst_grid))
     all_unmerged = list(itertools.chain.from_iterable(all_data))
     # ma.printLine(all_unmerged)
-    saveCoordData(all_unmerged)
-    return good_data
+    # saveCoordData(all_unmerged)
+    return all_data
 
 
 def saveCoordData(lst):
@@ -602,7 +582,6 @@ def checkProximalValues(data):
 
 def sideDataToDecimalAzimuth(dir_lst, data):
     dir_lst_flatten = ma.manyToOne(dir_lst)
-
     if len(data[0]) == 14:
         new_data = [i[7:12] for i in data]
         new_data = [[float(j) for j in i] for i in new_data]
@@ -1016,4 +995,4 @@ class ZoomPan:
         return onMotion
 
 
-mainProcess()
+# mainProcess()

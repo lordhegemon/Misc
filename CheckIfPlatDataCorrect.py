@@ -407,6 +407,7 @@ def drawData():
     len_lst = []
     sql_lst, sql_conc = parseDatabaseForDataWithSectionsAndSHL(cursor)
     df = pd.read_csv("LatLonEdited.csv", encoding="ISO-8859-1")
+    # print(df)
     # df = pd.read_csv("LatLonEdited.csv", encoding="ISO-8859-1")
     compareGISDataToParsed(df)
     pd.set_option('display.max_columns', None)
@@ -498,7 +499,7 @@ def mainProcessRemoveDupes():
         # ax.plot(x, y, c='red')
     # plt.show()
     grouped_lst = list(chain.from_iterable(grouped_lst))
-    saveData(grouped_lst)
+    # saveData(grouped_lst)
 
 
 def mainProcess():
@@ -507,7 +508,7 @@ def mainProcess():
     sql_lst, sql_conc = parseDatabaseForDataWithSectionsAndSHL(cursor)
     corrected_lst = findComparisonList(df_lst, df_conc, sql_lst, sql_conc, restricted_lst, id_conc)
     consolidate_lst = consolidateData(corrected_lst, df_lst)
-    saveData(consolidate_lst)
+    # saveData(consolidate_lst)
 
 
 def consolidateData(corrected_lst, df_lst):
@@ -634,7 +635,7 @@ def sqlConnect():
 
 
 def parseDatabaseForDataWithSectionsAndSHL(cursor):
-    execute1 = ' select Wh_sec,[Wh_Twpn],[Wh_Twpd], [Wh_RngN], [Wh_RngD], [Wh_Pm], NorthReference, iFGridConvergence, X, Y, SUBSTRING(tal.API, 0, 11) As API, [Wh_FtNS], [Wh_Ns], [Wh_FtEW], [Wh_EW]'
+    execute1 = ' select Wh_sec,[Wh_Twpn],[Wh_Twpd], [Wh_RngN], [Wh_RngD], [Wh_Pm], NorthReference, iFGridConvergence, X, Y, SUBSTRING(tal.API, 0, 11) As API, [Wh_FtNS], [Wh_Ns], [Wh_FtEW], [Wh_EW], X, Y'
     execute2 = ' from [dbo].[DirectionalSurveyHeader] as dsh'
     execute3 = ' join [dbo].[tblAPDLoc] tal on SUBSTRING(tal.API, 0, 11) = dsh.APINumber'
     execute4 = " where Wh_X IS NOT NULL and Wh_Y IS NOT NULL and Wh_FtNS is not Null and Wh_FtEW is not Null and API is not Null and Wh_Ns is not Null and Wh_EW is not Null and Wh_Sec is not Null and Wh_Twpn is not Null and Wh_Twpd is not Null and Wh_RngD is not Null and Wh_RngN is not Null and Wh_Pm is not Null"
