@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 from shapely.geometry import Point, LineString
 from shapely.geometry.polygon import Polygon
 import copy
+import EditAGRCData
 
 
 def turnIntoDB():
@@ -44,8 +45,6 @@ def main2():
 
         line = data_init + latlon + [conc_code] + ['V.1']
         new_data_file.append(line)
-        # print(line)
-        # print(line)
     df_test = [{'Section': i[0], 'Township': int(float(i[1])), 'Township Direction': i[2], 'Range': int(float(i[3])),
                 'Range Direction': i[4], 'Baseline': i[5], 'Easting': float(i[6]), 'Northing': float(i[7]), 'Latitude': float(i[8]), "Longitude": float(i[9]), 'Conc': i[10], 'Version': i[11]} for i in new_data_file]
     df = pd.DataFrame(df_test, columns=['Section', 'Township', 'Township Direction', 'Range', 'Range Direction', 'Baseline', 'Easting', 'Northing', "Latitude", "Longitude", 'Conc', 'Version'])
@@ -72,7 +71,6 @@ def addZeroesForConc(i):
     if len_lst[3] == 1:
         conc_code[3] = "0" + str(conc_code[3])
     conc_code = "".join([str(q) for q in conc_code])
-    # print(conc_code)
     return conc_code
 
 
@@ -81,7 +79,6 @@ def main():
     df_parsed = pd.read_csv("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\PlatGridNumbers.csv", encoding="ISO-8859-1")
     data_test = df_parsed.to_numpy().tolist()
     data_test = [i for i in data_test if 'agrc' not in i[-1].lower()]
-    # ma.printLine(data_test)
     # data_sorted = ma.oneToMany(data, 16)
     new_data_file = []
     conn, cursor = sqlConnect()
@@ -91,14 +88,12 @@ def main():
         lst = FindSurfaceLocationsAndPlats.transformData2(i)
         if lst != []:
             data = lst[0]
+            assembleDataCardinalDirections(data)
             for j in data:
-                out = reTranslateData(j)
-                print(out)
-                # added_data.append(out)
-            # ma.printLine(lst[0])
-    ma.printLine(added_data)
+                conc_code_merged, conc_code = reTranslateData(j)
+                data_created = conc_code + j[-2:] + [conc_code_merged] + ["V.1"]
+                added_data.append(data_created)
     print("boo")
-    # ma.printLine(output)
     # for i in sql_lst:
     #     section_data_df = df_parsed[(df_parsed['Section'] == i[0])
     #                                 & (df_parsed['Township'] == i[1])
@@ -129,19 +124,214 @@ def main():
     #                         conc_code_all[4] = int(float(translateDirectionToNumber('rng', conc_code_all[4])))
     #                         conc_code_all[5] = int(float(translateDirectionToNumber('baseline', conc_code_all[5])))
     #                         new_line = conc_code_all + data_utm[r] + latlon + [conc_code] + [version_name]
-    #                         # print(new_line)
     #                         new_data_file.append(new_line)
     #
     #
     #             except TypeError:
     #                 pass
-    #     # print("counter", counter)
-    # # print(counter)
+
+
     # df_test = [{'Section': i[0], 'Township': int(float(i[1])), 'Township Direction': i[2], 'Range': int(float(i[3])),
     #             'Range Direction': i[4], 'Baseline': i[5], 'Easting': float(i[6]), 'Northing': float(i[7]), 'Latitude': float(i[8]), "Longitude": float(i[9]), 'Conc': i[10], 'Version': i[11]} for i in new_data_file]
     # df = pd.DataFrame(df_test, columns=['Section', 'Township', 'Township Direction', 'Range', 'Range Direction', 'Baseline', 'Easting', 'Northing', "Latitude", "Longitude", 'Conc', 'Version'])
     # # df.to_csv('DataPointsLatLon.csv', index=False)
 
+
+def assembleDataCardinalDirections(lst):
+    lst = [[i[6], i[7]] for i in lst]
+    centroid = Polygon(lst).centroid
+    centroid = [centroid.x, centroid.y]
+    data_lengths = []
+    for i in range(len(lst)):
+        data_lengths.append(lst[i] + [ma.findSegmentLength(centroid, lst[i])])
+    corners = EditAGRCData.cornerGeneratorProcess(data_lengths)
+    data_lengths = EditAGRCData.reorganizeLstPointsWithAngle(data_lengths, centroid)
+    east_side = EditAGRCData.arrangeDirectionData(corners, data_lengths, 'east')
+    north_side = EditAGRCData.arrangeDirectionData(corners, data_lengths, 'north')
+    west_side = EditAGRCData.arrangeDirectionData(corners, data_lengths, 'west')
+    south_side = EditAGRCData.arrangeDirectionData(corners, data_lengths, 'south')
+    all_data = west_side + north_side + east_side + south_side
+    # if len(east_side) == 5:
+    #     print('five')
+    # print(east_side)
+    # print(west_side)
+    if len(east_side) < 5:
+        print("\n\nEastSide\n_____________")
+        east_side = [list(t) for t in set(tuple(element) for element in east_side)]
+        east_side = [[i[0], i[1]] for i in east_side]
+        east_side = arranger(east_side, 'east')
+        # ma.printLine(east_side)
+        east_side = dividePoints(east_side, all_data)
+        # ma.printLine(east_side)
+        # east_side = arranger(east_side, 'east')
+    if len(north_side) < 5:
+        print("\n\nNorthSide\n_____________")
+        north_side = [list(t) for t in set(tuple(element) for element in north_side)]
+        north_side = [[i[0], i[1]] for i in north_side]
+        north_side = arranger(north_side, 'north')
+        north_side = dividePoints(north_side, all_data)
+        # north_side = arranger(north_side, 'north')
+    if len(west_side) < 5:
+        print("\n\nWestSide\n_____________")
+        west_side = [list(t) for t in set(tuple(element) for element in west_side)]
+        west_side = [[i[0], i[1]] for i in west_side]
+        west_side = arranger(west_side, 'west')
+        west_side = dividePoints(west_side, all_data)
+        # west_side = arranger(west_side, 'west')
+    ma.printLine(south_side)
+    if len(south_side) < 5:
+        print("\n\nSouthSide\n_____________")
+        south_side = [list(t) for t in set(tuple(element) for element in south_side)]
+        south_side = [[i[0], i[1]] for i in south_side]
+        south_side = arranger(south_side, 'south')
+
+        south_side = dividePoints(south_side, all_data)
+
+        # south_side = arranger(south_side, 'south')
+    print(south_side)
+    if len(south_side) < 5:
+        print('length')
+    if len(west_side) < 5:
+        print('length')
+    if len(north_side) < 5:
+        print('length')
+    if len(east_side) < 5:
+        print('length')
+    all_data = west_side + north_side + east_side + south_side
+
+def arranger(lst, label):
+
+    # all_data = [[i[0], i[1]] for i in lst]
+
+    if label == 'west' or label == 'east':
+        sorted_data = sorted(lst, key=lambda r: r[1], reverse=True)
+        return sorted_data
+    else:
+        sorted_data = sorted(lst, key=lambda r: r[0])
+        return sorted_data
+
+def dividePoints(side, all_data):
+    length_lst = []
+    all_pts = [[],[],[],[],[]]
+    all_data = [[i[0], i[1]] for i in all_data]
+
+
+    for i in range(len(side)-1):
+        length_lst.append(ma.findSegmentLength(side[i], side[i+1]) * 3.2808399)
+
+    if len(side) == 2:
+        for j in range(4):
+            div = j / 4
+            all_pts[j] = [findPointsOnLine(side[0][:2], side[1][:2], div), "P"]
+        all_pts[0], all_pts[-1] = [side[0][:2],"T"], [side[1][:2], "T"]
+        return all_pts
+
+    elif len(side) == 3:
+        i_lst = [0,2]
+        length_lst = length_lst[::-1]
+        if 1.2 > length_lst[0]/length_lst[1] > 0.8:
+            for i in range(2):
+                counter = i_lst[i]
+                for j in range(3):
+                    div = j/3
+                    all_pts[counter] = [findPointsOnLine(side[i][:2], side[i+1][:2], div), "P"]
+                    counter += 1
+            all_pts[0], all_pts[2], all_pts[4] = [side[0][:2], "T"], [side[1][:2], "T"], [side[2][:2], "T"]
+            return all_pts
+        else:
+            if length_lst[0] < length_lst[1]:
+                # fig, ax1 = plt.subplots()
+                for j in range(3):
+                    div = j/3
+                    all_pts[j] = [findPointsOnLine(side[0][:2], side[1][:2], div), "P"]
+                all_pts[0], all_pts[3], all_pts[4] = [side[0], "T"], [side[1], "T"], [side[2], "T"]
+                return all_pts
+                # test_data = [i for i in all_pts if i]
+                # x3, y3 = [i[0][0] for i in test_data], [i[0][1] for i in test_data]
+                # x2, y2 = [i[0] for i in all_data], [i[1] for i in all_data]
+                # for i in range(len(x3)):
+                #     ax1.text(x3[i], y3[i], str(i))
+                # ax1.scatter(x2, y2, c='red', s=150)
+                # ax1.scatter(x3, y3, c='black')
+                # plt.show()
+            else:
+                for j in range(3):
+                    div = j / 3
+                    all_pts[j] = [findPointsOnLine(side[0][:2], side[1][:2], div), "P"]
+                # test_data = [i for i in all_pts if i]
+                all_pts[0], all_pts[3], all_pts[4] = [side[0][:2], "T"], [side[1][:2], "T"], [side[2][:2], "T"]
+                # used_pts = [side[0][:2]] + [side[1][:2]]
+                return all_pts
+
+    elif len(side) == 4:
+        print("length 4")
+        # fig, ax1 = plt.subplots()
+        side_data = [i[:2] for i in side]
+        dict_lst = dict(enumerate(ma.grouper(sorted(length_lst), 600), 1))
+        dict_lst = [j for t, j in dict_lst.items()]
+        long_len = min(dict_lst, key=len)
+        position = length_lst.index(long_len)
+
+        if position == 0:
+            print('pos1')
+            pt1, pt2 = side_data[0], side_data[1]
+            for j in range(2):
+                div = j / 2
+                all_pts[j] = [findPointsOnLine(pt1, pt2, div), "P"]
+            # ma.printLine(all_pts)
+            all_pts[2], all_pts[3], all_pts[4] = [side[1][:2], "T"], [side[2][:2], "T"], [side[3][:2], "T"]
+            # ma.printLine(all_pts)
+            return all_pts
+        elif position == 2:
+            print('pos2')
+            pt1, pt2 = side_data[2], side_data[3]
+            for j in range(2):
+                div = j / 2
+                all_pts[2+j] = [findPointsOnLine(pt1, pt2, div), "P"]
+
+            all_pts[0], all_pts[1], all_pts[4] = [side[0], "T"], [side[1], "T"], [side[3], "T"]
+            # ma.printLine(all_pts)
+            return all_pts
+        else:
+
+            fig, ax1 = plt.subplots()
+
+            # test_data = [i for i in all_pts if i]
+            x3, y3 = [i[0] for i in side_data], [i[1] for i in side_data]
+            x2, y2 = [i[0] for i in all_data], [i[1] for i in all_data]
+            # for i in range(len(x3)):
+            #     ax1.text(x3[i], y3[i], str(i))
+            ax1.scatter(x2, y2, c='red', s=150)
+            ax1.scatter(x3, y3, c='black')
+            plt.show()
+            # ma.printLine(all_pts)
+        # ma.printLine(side)
+        # print(dict_lst)
+        # print(position, long_len)
+        # print(pt1, pt2)
+
+        # else:
+
+    # elif len(side) == 4:
+    #     print(4)
+    # if len(side) == 3:
+    #     for i in range(len(side)-1):
+    #         for j in range():
+    #             div = j / 3
+    #             new_point = findPointsOnLine(side[i], side[i+1], div)
+    #             print(new_point)
+    # if len(side) == 2:
+    #     for i in range(len(side)-1):
+    #         for j in range(2):
+    #             div = j / 2
+    #             new_point = findPointsOnLine(side[i], side[i+1], div)
+    #             print(new_point)
+
+
+
+def findPointsOnLine(xy1, xy2, div):
+    x, y = xy1[0] + (div * (xy2[0] - xy1[0])), xy1[1] + (div * (xy2[1] - xy1[1]))
+    return [x, y]
 
 def reTranslateData(i):
     tsr_data = i[11:]
@@ -159,7 +349,9 @@ def reTranslateData(i):
     if len_lst[3] == 1:
         conc_code[3] = "0" + str(conc_code[3])
     conc_code = "".join([str(q) for q in conc_code])
-    return tsr_data, conc_code, conc_code_merged
+    # return tsr_data, conc_code, conc_code_merged
+    return conc_code, conc_code_merged
+
 
 
 def convertData(shl, data_lst, utm_data):

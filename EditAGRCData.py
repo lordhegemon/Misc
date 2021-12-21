@@ -402,6 +402,7 @@ def findCorners(lst):
     # # corners, data_lengths = checkForPointsTooCloseToCorners(data_lengths, centroid, lst, counter)
     # if counter == 0:
     #     print(2, corners)
+    # ma.printLine(data_lengths)
     corners = cornerGeneratorProcess(data_lengths)
     data_lengths = reorganizeLstPointsWithAngle(data_lengths, centroid)
     east_side = arrangeDirectionData(corners, data_lengths, 'east')
@@ -589,4 +590,4 @@ def translateDirectionToNumber(variable, val):
             return val
 
 
-renderAGRCDataDown()
+# renderAGRCDataDown()

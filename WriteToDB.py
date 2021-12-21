@@ -16,4 +16,14 @@ def main():
     output = pd.read_sql(string_sql, conn, index_col='index')
     print(time.perf_counter() - time_1)
 
+def sqlConnect():
+    conn = pyodbc.connect(
+        "Driver={SQL Server};"
+        "Server=DESKTOP-CMK3OJU\SQLEXPRESS01;"
+        "Database=UTRBDMSNET;"
+        "Trusted_Connection = yes;")
+    cursor = conn.cursor()
+    return conn, cursor
+
+
 main()

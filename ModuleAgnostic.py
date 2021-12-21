@@ -104,7 +104,6 @@ def convertDecimalToDegrees(dd):
 
 
 def cornerGeneratorProcess(data_lengths):
-
     centroid = Polygon(data_lengths).centroid
     centroid = [centroid.x, centroid.y]
     lst_poly = Polygon(data_lengths)
@@ -114,8 +113,6 @@ def cornerGeneratorProcess(data_lengths):
     corners = checkClockwisePts(corners)
     corner_arrange = [i + [(math.degrees(math.atan2(centroid[1] - i[1], centroid[0] - i[0])) + 360) % 360] for i in corners]
     corners = sorted(corner_arrange, key=lambda r: r[-1])
-
-
     data_lengths = reorganizeLstPointsWithAngle(data_lengths, centroid)
 
     # plt.figure(0)

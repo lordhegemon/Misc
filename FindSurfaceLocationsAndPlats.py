@@ -53,7 +53,6 @@ def mainProcess():
     matcher_lst_2 = matcherDF2(lst_parsed_df, data_lst)
 
     df_parsed_fin, df_parsed_fin_lst = transformDatabaseQueryToDataframe(matcher_lst_2)
-    # ma.printLine()
     df_merged, df_merged_lst = mergeBothPages(df_base_lst, df_parsed_fin_lst)
     lst = transformData2(df_merged_lst)
     # compareConcLists(data_lst, excel_parsed_df)
@@ -260,7 +259,6 @@ def matcherDF1(df, lst):
 
 
 def matcherDF2(df, lst):
-    # ma.printLine(lst)
     found_data = []
     conc_lst = []
     for i in range(len(lst)):
@@ -280,7 +278,6 @@ def matcherDF2(df, lst):
                     found_data.append(new_line[j])
                 conc_lst.append(lesser_conc)
     found_data = ma.oneToMany(found_data, 16)
-    # ma.printLine(found_data)
     return found_data
 
 
@@ -517,7 +514,6 @@ def transformData2(lst):
             pass
 
     coord_data_lst = [i for i in coord_data_lst if i]
-    ma.printLine(coord_data_lst)
     coord_data_lst_grid = [i for i in coord_data_lst_grid if i]
     all_data = coord_data_lst + coord_data_lst_grid
     # for i in range(len(coord_data_lst)):
@@ -544,7 +540,6 @@ def transformData2(lst):
     coordLst_unmerged = list(itertools.chain.from_iterable(coord_data_lst))
     coord_data_lst_grid_unmerged = list(itertools.chain.from_iterable(coord_data_lst_grid))
     all_unmerged = list(itertools.chain.from_iterable(all_data))
-    # ma.printLine(all_unmerged)
     # saveCoordData(all_unmerged)
     return all_data
 
