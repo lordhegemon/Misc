@@ -30,7 +30,10 @@ def turnIntoDB():
 def main2():
     # df_parsed = pd.read_csv("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\OddballSections.csv", encoding="ISO-8859-1")
     # df_parsed = pd.read_csv("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\All_Data_Lat_Lon.csv", encoding="ISO-8859-1")
-    df_parsed = pd.read_csv("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\ConvertedData.csv", encoding="ISO-8859-1")
+    # df_parsed = pd.read_csv("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\ConvertedData.csv", encoding="ISO-8859-1")
+    df_parsed = pd.read_csv("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\PlatAllSidesFour.csv", encoding="ISO-8859-1")
+
+
     data_test = df_parsed.to_numpy().tolist()
     new_data_file = []
     for i in data_test:
@@ -76,16 +79,27 @@ def addZeroesForConc(i):
 
 def main():
     added_data = []
-    df_parsed = pd.read_csv("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\PlatGridNumbers.csv", encoding="ISO-8859-1")
+    # df_parsed = pd.read_csv("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\PlatGridNumbers.csv", encoding="ISO-8859-1")
+    df_parsed = pd.read_csv("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\PlatAllSidesFour.csv", encoding="ISO-8859-1")
     data_test = df_parsed.to_numpy().tolist()
     data_test = [i for i in data_test if 'agrc' not in i[-1].lower()]
     # data_sorted = ma.oneToMany(data, 16)
     new_data_file = []
     conn, cursor = sqlConnect()
     sql_lst, sql_conc = parseDatabaseForDataWithSectionsAndSHL(cursor)
+    # print(df_parsed)
     output = FindSurfaceLocationsAndPlats.matcherDF1(df_parsed, sql_lst)
+    # for i in output:
+    #     if i[1][13] == 4304756225:
+    #         ma.printLine(i)
+    # ma.printLine(output)
+    # print(foo)
     for i in output:
+        print("\n\n\n__________________________________________________________________________")
+        # ma.printLine(i)
         lst = FindSurfaceLocationsAndPlats.transformData2(i)
+        # for j in lst:
+        #     ma.printLine(j)
         if lst != []:
             data = lst[0]
             assembleDataCardinalDirections(data)
@@ -138,6 +152,7 @@ def main():
 
 
 def assembleDataCardinalDirections(lst):
+    # ma.printLine(lst)
     lst = [[i[6], i[7]] for i in lst]
     centroid = Polygon(lst).centroid
     centroid = [centroid.x, centroid.y]
@@ -155,40 +170,37 @@ def assembleDataCardinalDirections(lst):
     #     print('five')
     # print(east_side)
     # print(west_side)
-    if len(east_side) < 5:
-        print("\n\nEastSide\n_____________")
-        east_side = [list(t) for t in set(tuple(element) for element in east_side)]
-        east_side = [[i[0], i[1]] for i in east_side]
-        east_side = arranger(east_side, 'east')
-        # ma.printLine(east_side)
-        east_side = dividePoints(east_side, all_data)
-        # ma.printLine(east_side)
-        # east_side = arranger(east_side, 'east')
-    if len(north_side) < 5:
-        print("\n\nNorthSide\n_____________")
-        north_side = [list(t) for t in set(tuple(element) for element in north_side)]
-        north_side = [[i[0], i[1]] for i in north_side]
-        north_side = arranger(north_side, 'north')
-        north_side = dividePoints(north_side, all_data)
-        # north_side = arranger(north_side, 'north')
-    if len(west_side) < 5:
-        print("\n\nWestSide\n_____________")
-        west_side = [list(t) for t in set(tuple(element) for element in west_side)]
-        west_side = [[i[0], i[1]] for i in west_side]
-        west_side = arranger(west_side, 'west')
-        west_side = dividePoints(west_side, all_data)
-        # west_side = arranger(west_side, 'west')
-    ma.printLine(south_side)
-    if len(south_side) < 5:
-        print("\n\nSouthSide\n_____________")
-        south_side = [list(t) for t in set(tuple(element) for element in south_side)]
-        south_side = [[i[0], i[1]] for i in south_side]
-        south_side = arranger(south_side, 'south')
-
-        south_side = dividePoints(south_side, all_data)
+    # if len(east_side) < 5:
+    #     print("\n\nEastSide\n_____________")
+    #     east_side = [list(t) for t in set(tuple(element) for element in east_side)]
+    #     east_side = [[i[0], i[1]] for i in east_side]
+    #     east_side = arranger(east_side, 'east')
+    #     east_side = dividePoints(east_side, all_data)
+    #     # east_side = arranger(east_side, 'east')
+    # if len(north_side) < 5:
+    #     print("\n\nNorthSide\n_____________")
+    #
+    #     north_side = [list(t) for t in set(tuple(element) for element in north_side)]
+    #     north_side = [[i[0], i[1]] for i in north_side]
+    #     north_side = arranger(north_side, 'north')
+    #     north_side = dividePoints(north_side, all_data)
+    #     # north_side = arranger(north_side, 'north')
+    # if len(west_side) < 5:
+    #     print("\n\nWestSide\n_____________")
+    #     west_side = [list(t) for t in set(tuple(element) for element in west_side)]
+    #     west_side = [[i[0], i[1]] for i in west_side]
+    #     west_side = arranger(west_side, 'west')
+    #     west_side = dividePoints(west_side, all_data)
+    #     # west_side = arranger(west_side, 'west')
+    # if len(south_side) < 5:
+    #     print("\n\nSouthSide\n_____________")
+    #     south_side = [list(t) for t in set(tuple(element) for element in south_side)]
+    #     south_side = [[i[0], i[1]] for i in south_side]
+    #     south_side = arranger(south_side, 'south')
+    #
+    #     south_side = dividePoints(south_side, all_data)
 
         # south_side = arranger(south_side, 'south')
-    print(south_side)
     if len(south_side) < 5:
         print('length')
     if len(west_side) < 5:
@@ -265,50 +277,45 @@ def dividePoints(side, all_data):
 
     elif len(side) == 4:
         print("length 4")
-        # fig, ax1 = plt.subplots()
         side_data = [i[:2] for i in side]
         dict_lst = dict(enumerate(ma.grouper(sorted(length_lst), 600), 1))
         dict_lst = [j for t, j in dict_lst.items()]
         long_len = min(dict_lst, key=len)
+        # print(position)
+        print(length_lst)
+        print(long_len)
         position = length_lst.index(long_len)
 
         if position == 0:
-            print('pos1')
+            # print('pos1')
             pt1, pt2 = side_data[0], side_data[1]
             for j in range(2):
                 div = j / 2
                 all_pts[j] = [findPointsOnLine(pt1, pt2, div), "P"]
-            # ma.printLine(all_pts)
             all_pts[2], all_pts[3], all_pts[4] = [side[1][:2], "T"], [side[2][:2], "T"], [side[3][:2], "T"]
-            # ma.printLine(all_pts)
             return all_pts
         elif position == 2:
-            print('pos2')
+            # print('pos2')
             pt1, pt2 = side_data[2], side_data[3]
             for j in range(2):
                 div = j / 2
                 all_pts[2+j] = [findPointsOnLine(pt1, pt2, div), "P"]
 
             all_pts[0], all_pts[1], all_pts[4] = [side[0], "T"], [side[1], "T"], [side[3], "T"]
-            # ma.printLine(all_pts)
             return all_pts
         else:
-
+            # print(position)
             fig, ax1 = plt.subplots()
 
             # test_data = [i for i in all_pts if i]
             x3, y3 = [i[0] for i in side_data], [i[1] for i in side_data]
             x2, y2 = [i[0] for i in all_data], [i[1] for i in all_data]
-            # for i in range(len(x3)):
-            #     ax1.text(x3[i], y3[i], str(i))
+            for i in range(len(x3)):
+                ax1.text(x3[i], y3[i], str(i))
             ax1.scatter(x2, y2, c='red', s=150)
             ax1.scatter(x3, y3, c='black')
             plt.show()
-            # ma.printLine(all_pts)
-        # ma.printLine(side)
-        # print(dict_lst)
-        # print(position, long_len)
-        # print(pt1, pt2)
+
 
         # else:
 

@@ -243,17 +243,32 @@ def matcherDF1(df, lst):
         lesser_conc = str(int(float(lst[i][0]))) + str(int(float(lst[i][1]))) + str(lst[i][2]) + str(int(float(lst[i][3]))) + str(lst[i][4]) + str(lst[i][5])
         re_conc = re.compile(r"^" + re.escape(lesser_conc) + r"\D")
         find = df[(df['Concatenation'].str.contains(re_conc))]
+
         if len(find) > 0:
             new_line = find.to_numpy().tolist()
             if lesser_conc not in conc_lst:
                 for j in range(len(new_line)):
                     new_line[j] = new_line[j][:12] + [new_line[j][-1]]
-                    new_line[j] = new_line[j] + [lst[i][10]] + lst[i][6:10] + lst[i][11:]
+                    new_line[j] = new_line[j] + [lst[i][10]] + lst[i][6:10] + lst[i][11:] + [lesser_conc]
 
                     found_data.append(new_line[j])
+                    # if lesser_conc == '1632222':
+                    #     print(new_line[j])
                 conc_lst.append(lesser_conc)
 
-    found_data = ma.oneToMany(found_data, 16)
+    # ma.printLine(found_data)
+    # found_data = ma.oneToMany(found_data, 16)
+    d = {}
+
+    for row in found_data:
+        # Add name to dict if not exists
+        if row[-1] not in d:
+            d[row[-1]] = []
+        # Add all non-Name attributes as a new list
+        d[row[-1]].append(row[:-1])
+    for i, k in d.items():
+        len(k)
+    # ma.printLine(d)
 
     return found_data
 
