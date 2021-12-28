@@ -23,7 +23,7 @@ def turnIntoDB():
     df_parsed_utm_latlon.to_sql("CasingStrengths", conn, if_exists='replace')
 
     df_parsed_utm_latlon = pd.read_csv("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\UTM\\PlatGridNumbers.csv", dtype='object')
-    df_parsed_utm_latlon.to_sql("SectionSidesData", conn, if_exists='replace')
+    df_parsed_utm_latlon.to_sql("GridDataLatLonUTM", conn, if_exists='replace')
 
 
 
@@ -53,7 +53,7 @@ def main2():
     df = pd.DataFrame(df_test, columns=['Section', 'Township', 'Township Direction', 'Range', 'Range Direction', 'Baseline', 'Easting', 'Northing', "Latitude", "Longitude", 'Conc', 'Version'])
     # df.to_csv('OddballUTMLatLon.csv', index=False)
     # df.to_csv('All_Data_Lat_Lon_UTM.csv', index=False)
-    df.to_csv('ConvertedData_Out.csv', index=False)
+    # df.to_csv('ConvertedData_Out.csv', index=False)
 
 
 
@@ -78,36 +78,33 @@ def addZeroesForConc(i):
 
 
 def main():
+    print("\n\n\n\n___________________________________________________________________________")
     added_data = []
     # df_parsed = pd.read_csv("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\PlatGridNumbers.csv", encoding="ISO-8859-1")
     df_parsed = pd.read_csv("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\PlatAllSidesFour.csv", encoding="ISO-8859-1")
     data_test = df_parsed.to_numpy().tolist()
     data_test = [i for i in data_test if 'agrc' not in i[-1].lower()]
-    # data_sorted = ma.oneToMany(data, 16)
-    new_data_file = []
     conn, cursor = sqlConnect()
     sql_lst, sql_conc = parseDatabaseForDataWithSectionsAndSHL(cursor)
-    # print(df_parsed)
     output = FindSurfaceLocationsAndPlats.matcherDF1(df_parsed, sql_lst)
-    # for i in output:
-    #     if i[1][13] == 4304756225:
-    #         ma.printLine(i)
-    # ma.printLine(output)
-    # print(foo)
+    # d = {}
+    pd.set_option('display.max_columns', None)
+
     for i in output:
-        print("\n\n\n__________________________________________________________________________")
-        # ma.printLine(i)
         lst = FindSurfaceLocationsAndPlats.transformData2(i)
-        # for j in lst:
-        #     ma.printLine(j)
         if lst != []:
             data = lst[0]
             assembleDataCardinalDirections(data)
             for j in data:
                 conc_code_merged, conc_code = reTranslateData(j)
-                data_created = conc_code + j[-2:] + [conc_code_merged] + ["V.1"]
+                latlon = list(utm.to_latlon(j[-3], j[-2], 12, 'T'))
+                # print([j[-2], str(j[-2])])
+                data_created = j[:-1] + latlon + [conc_code_merged] + ["V.1"]
+
+                # data_created = conc_code + [j[-3]] + [j[-2]] + latlon + [conc_code_merged] + ["V.1"]
                 added_data.append(data_created)
-    print("boo")
+    # ma.printLine(added_data)
+    # print("boo")
     # for i in sql_lst:
     #     section_data_df = df_parsed[(df_parsed['Section'] == i[0])
     #                                 & (df_parsed['Township'] == i[1])
@@ -145,14 +142,43 @@ def main():
     #                 pass
 
 
-    # df_test = [{'Section': i[0], 'Township': int(float(i[1])), 'Township Direction': i[2], 'Range': int(float(i[3])),
-    #             'Range Direction': i[4], 'Baseline': i[5], 'Easting': float(i[6]), 'Northing': float(i[7]), 'Latitude': float(i[8]), "Longitude": float(i[9]), 'Conc': i[10], 'Version': i[11]} for i in new_data_file]
-    # df = pd.DataFrame(df_test, columns=['Section', 'Township', 'Township Direction', 'Range', 'Range Direction', 'Baseline', 'Easting', 'Northing', "Latitude", "Longitude", 'Conc', 'Version'])
-    # # df.to_csv('DataPointsLatLon.csv', index=False)
+    df_test = [{'Section': i[0], 'Township': int(float(i[1])), 'Township Direction': i[2], 'Range': int(float(i[3])),
+                'Range Direction': i[4], 'Baseline': i[5], 'Easting': float(i[6]), 'Northing': float(i[7]), 'Latitude': float(i[8]), "Longitude": float(i[9]), 'Conc': i[10], 'Version': i[11]} for i in added_data]
+    df = pd.DataFrame(df_test, columns=['Section', 'Township', 'Township Direction', 'Range', 'Range Direction', 'Baseline', 'Easting', 'Northing', "Latitude", "Longitude", 'Conc', 'Version'])
+    # print(df)
+    df.to_csv('GridDataLatLonUTM.csv', index=False)
 
+def convertToDecimal(data):
+    data_converted = []
+    for i in range(len(data)):
+        data[i] = data[i][6:12]
+        data[i][1] = float(data[i][1])
+        side, deg, min, sec, dir_val = data[i][1], data[i][2], data[i][3], data[i][4], data[i][5]
+        dec_val_base = (deg + min / 60 + sec / 3600)
+        if 'west' in data[i][0].lower():
+            if dir_val in [4, 1]:
+                decVal = 90 + dec_val_base
+            else:
+                decVal = 90 - dec_val_base
+        if 'east' in data[i][0].lower():
+            if dir_val in [4, 1]:
+                decVal = 270 + dec_val_base
+            else:
+                decVal = 270 - dec_val_base
+        if 'north' in data[i][0].lower():
+            if dir_val in [3, 2]:
+                decVal = 360 - (270 + dec_val_base)
+            else:
+                decVal = 270 + dec_val_base
+        if 'south' in data[i][0].lower():
+            if dir_val in [4, 1]:
+                decVal = 90 + dec_val_base
+            else:
+                decVal = 360 - (90 + dec_val_base)
+        data_converted.append([side, decVal])
+    return data_converted
 
 def assembleDataCardinalDirections(lst):
-    # ma.printLine(lst)
     lst = [[i[6], i[7]] for i in lst]
     centroid = Polygon(lst).centroid
     centroid = [centroid.x, centroid.y]
@@ -631,6 +657,6 @@ def lineSegmentCalculator(xy1, xy2, direct, cardinal_dir):
     return data_out
 
 
-main()
+# main()
 # main2()
-# turnIntoDB()
+turnIntoDB()

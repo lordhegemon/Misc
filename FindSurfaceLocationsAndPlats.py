@@ -252,11 +252,9 @@ def matcherDF1(df, lst):
                     new_line[j] = new_line[j] + [lst[i][10]] + lst[i][6:10] + lst[i][11:] + [lesser_conc]
 
                     found_data.append(new_line[j])
-                    # if lesser_conc == '1632222':
-                    #     print(new_line[j])
+
                 conc_lst.append(lesser_conc)
 
-    # ma.printLine(found_data)
     # found_data = ma.oneToMany(found_data, 16)
     d = {}
 
@@ -266,10 +264,7 @@ def matcherDF1(df, lst):
             d[row[-1]] = []
         # Add all non-Name attributes as a new list
         d[row[-1]].append(row[:-1])
-    for i, k in d.items():
-        len(k)
-    # ma.printLine(d)
-
+    found_data = [j for t, j in d.items()]
     return found_data
 
 
@@ -302,8 +297,8 @@ def transformDatabaseQueryToDataframe(lst):
                                     'FNSL Value', 'FNSL Direction', 'FEWL Value', 'FEWL Direction'])
     for j in lst:
         for i in j:
-            if i[15] == 'None':
-                i[15] = 0
+            # if i[15] == 'None':
+            #     i[15] = 0
             new_row = {'Section': int(float(i[0])),
                        'Township': int(float(i[1])),
                        'Township Direction': i[2],
@@ -500,6 +495,7 @@ def transformData2(lst):
         coord_data_lst_grid.append([])
         all_data = []
         data_converted = sideDataToDecimalAzimuth(dir_lst, i)
+        # data_converted =  convertToDecimal(i)
         dir_lst_flatten = ma.manyToOne(dir_lst)
         try:
             coordLst = getCoordsLst(data_converted, [0.0, 0.0])
@@ -558,6 +554,35 @@ def transformData2(lst):
     # saveCoordData(all_unmerged)
     return all_data
 
+def convertToDecimal(data):
+    data_converted = []
+    for i in range(len(data)):
+        data[i] = data[i][6:12]
+        data[i][1] = float(data[i][1])
+        side, deg, min, sec, dir_val = data[i][1], data[i][2], data[i][3], data[i][4], data[i][5]
+        dec_val_base = (deg + min / 60 + sec / 3600)
+        if 'west' in data[i][0].lower():
+            if dir_val in [4, 1]:
+                decVal = 90 + dec_val_base
+            else:
+                decVal = 90 - dec_val_base
+        if 'east' in data[i][0].lower():
+            if dir_val in [4, 1]:
+                decVal = 270 + dec_val_base
+            else:
+                decVal = 270 - dec_val_base
+        if 'north' in data[i][0].lower():
+            if dir_val in [3, 2]:
+                decVal = 360 - (270 + dec_val_base)
+            else:
+                decVal = 270 + dec_val_base
+        if 'south' in data[i][0].lower():
+            if dir_val in [4, 1]:
+                decVal = 90 + dec_val_base
+            else:
+                decVal = 360 - (90 + dec_val_base)
+        data_converted.append([side, decVal])
+    return data_converted
 
 def saveCoordData(lst):
     df = pd.DataFrame(columns=['Section', 'Township', 'Township Direction', 'Range', 'Range Direction', 'Baseline', 'Easting', 'Northing', 'API'])
@@ -604,6 +629,7 @@ def sideDataToDecimalAzimuth(dir_lst, data):
         data_converted = convertDirections(new_data, dir_lst_flatten)
 
     else:
+
         new_data = [i[7:12] for i in data]
         new_data = [[float(j) for j in i] for i in new_data]
         for r in range(len(new_data)):
