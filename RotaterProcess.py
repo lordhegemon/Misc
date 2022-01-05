@@ -7,5 +7,4 @@ def main():
     center = [1,1]
     for i in range(len(pts)):
         angle = (math.degrees(math.atan2(pts[i][1] - center[1], pts[i][0] - center[0])) + 360) % 360
-        print(center, pts[i], angle)
 main()

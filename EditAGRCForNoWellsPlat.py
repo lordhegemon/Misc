@@ -9,29 +9,21 @@ import ModuleAgnostic as ma
 def main():
     conn, cursor = sqlConnect()
     df_parsed = pd.read_csv("PlatSidesAll.csv", encoding="ISO-8859-1")
-    # print(len(df_parsed))
 
     pd.set_option('display.max_columns', None)
-    # print(df_parsed)
-    # print(df_parsed)
     # df_parsed = df_parsed.to_numpy().tolist()
     # unique_col = df_parsed.new_code.unique().tolist()
     data_out = sqlRun(cursor)
     data_out = list(set(data_out))
-    # print(list(df_parsed.columns.values))
     #
     # df_parsed = translateDF(df_parsed)
-    # print(df_parsed)
     # df_parsed.to_csv("LatLonEdited.csv")
     # df['min_distance'] = np.vectorize(equationDistance)(df['Easting'], df['Northing'], shl[0], shl[1])
     # df_parsed['is_present'] = np.vectorize(checkIfDataPresent)(df_parsed['new_code'], data_out)
 
-    # print(len(df_parsed))
-    # print(df_parsed)
     df_parsed['is_present'] = np.where(df_parsed['ConcCode'].isin(data_out), True, False)
     df_parsed_test = df_parsed.query('is_present == True')
-    print(df_parsed_test)
-    # print(len(df_parsed_test))
+
     unique_col = df_parsed_test.ConcCode.unique().tolist()
     df_parsed_test.to_csv("PlatSidesAll.csv")
 
@@ -100,7 +92,6 @@ def sqlRun(cursor):
         data_lst[i][3] = int(float(data_lst[i][3]))
         # data_lst[i][4] = translateNumberToDirection('range', data_lst[i][4])
         # data_lst[i][5] = translateNumberToDirection('baseline', data_lst[i][5])
-        # print(data_lst[i])
         if len(str(data_lst[i][0])) == 1:
             data_lst[i][0] = "0" + str(data_lst[i][0])
         if len(str(data_lst[i][1])) == 1:

@@ -34,6 +34,7 @@ def sortPointsInClockwisePattern(coords):
 
 
 def printFunctionName():
+    print()
     curframe = inspect.currentframe()
     calframe = inspect.getouterframes(curframe, 2)
     print('FUNCTION:', calframe[1][3])
@@ -95,6 +96,15 @@ def checkListOfListsIdentical(lst1, lst2):
         return False
     else:
         return True
+
+def groupByLikeValues(lst, index):
+    d = {}
+    for row in lst:
+        if row[index] not in d:
+            d[row[index]] = []
+        d[row[index]].append(row)
+    d_lst = [j for i, j in d.items()]
+    return d_lst
 
 
 def convertDecimalToDegrees(dd):

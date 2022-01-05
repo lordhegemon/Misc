@@ -25,13 +25,11 @@ def rewriteDataLatLon(lst):
     counter = 0
     lst = [i for i in lst if i[-1] not in bad_lst]
     for i in lst:
-        # if counter % 1000 == 0:
-        #     print(counter)
+
         tsr_line = i[-1]
         # if tsr_line not in return_lst:
         section, township, township_dir, range_val, range_dir, meridian = int(tsr_line[:2]), int(tsr_line[2:4]), tsr_line[4], int(tsr_line[5:7]), tsr_line[7], tsr_line[8]
-        # if section == 27 and township == 9:# and township == 9 and range == 19:
-        #     print([section, township, township_dir, range_val, range_dir, meridian], [tsr_line])
+
         easting, northing = float(i[8]), float(i[9])
         township_dir = translateDirectionToNumber('township', township_dir)
         range_dir = translateDirectionToNumber('rng', range_dir)
@@ -39,8 +37,7 @@ def rewriteDataLatLon(lst):
         conc = str(section) + str(township) + str(township_dir) + str(range_val) + str(range_dir) + str(meridian)
 
         return_lst.append([section, township, township_dir, range_val, range_dir, meridian, easting, northing, 89230983, conc])
-        # else:
-        #     print(tsr_line)
+
         # counter += 1
     return return_lst
 
@@ -51,7 +48,6 @@ def rewriteDataLatLon(lst):
 #     df_parsed = df_parsed.to_numpy().tolist()
 #
 #     df_parsed = rewriteDataLatLon(df_parsed)
-#     print("number of original points", len(df_parsed))
 #     pd.set_option('display.max_columns', None)
 #     for i in range(len(df_parsed)):
 #         df_parsed[i][:6], df_parsed[i][-1] = [int(j) for j in df_parsed[i][:6]], str(int(df_parsed[i][-1]))
@@ -67,7 +63,6 @@ def rewriteDataLatLon(lst):
 #     id_unique = []
 #     counter_unedited = 0
 #     for i in df_parsed:
-#         # print("_____________________________________________")
 #         tot_runner += len(i)
 #         data_set = [r[6:8] for r in i]
 #         tsr_data = i[0][:6]
@@ -79,15 +74,11 @@ def rewriteDataLatLon(lst):
 #             data_output[j] = tsr_data + data_output[j]
 #             new_sides.append(data_output[j])
 #             # graph_data(data_set, north_bounds, south_bounds, east_bounds, west_bounds)
-#         # # print()
-#         # # print(len(data_set))
-#         # # print(len(south_bounds), len(east_bounds), len(north_bounds), len(west_bounds), len(south_bounds)+ len(east_bounds)+ len(north_bounds)+ len(west_bounds))
 #         # pts_all.append([south_bounds, east_bounds, north_bounds, west_bounds])
 #         # for j in pts_all[-1]:
 #         #     if len(j) > 5:
 #         #         counter_true += len(j)
 #         #         # counter = 0
-#         #         # print(len(j))
 #         #         for k in range(5):
 #         #             counter_edited +=1
 #         #             # counter_true += 1
@@ -98,20 +89,13 @@ def rewriteDataLatLon(lst):
 #         #                 distance_lst.append([l, ma.findSegmentLength(found_pt, l)])
 #         #             distance_lst = sorted(distance_lst, key=lambda r: r[1])
 #         #             new_sides.append(tsr_data + distance_lst[0][0])
-#         #         # print(len(j), counter)
 #         #     else:
 #         #         for k in j:
 #         #             counter_unedited += 1
 #         #             # counter_true += 1
 #         #             new_sides.append(tsr_data + k)
 #     ma.removeDupesListOfLists(new_sides)
-#     # print('original points beginning', tot_runner)
-#     # print('number of original points', counter_true)
-#     # print('number of points edited down', counter_edited)
-#     # print('already five length points', counter_unedited)
-#     # print('total points inferred', counter_edited + counter_unedited)
 
-#
 #
 # def sortCorners(corners_lst):
 #     corners_left = [i for i in corners_lst if i[-1] < 0]
@@ -210,15 +194,14 @@ def rewriteDataLatLon(lst):
 
 #     # ns_1, ns_2 = [i[0] for i in ns_lst], [i[1] for i in ns_lst]
 #     # ew_1, ew_2 = [i[0] for i in ew_lst], [i[1] for i in ew_lst]
-#     # print(min(ns_1), max(ns_1),max(ns_1)-min(ns_1) )
-#     # print(min(ns_2), max(ns_2),max(ns_2)-min(ns_2))
+
 #     # data_ew = dict(enumerate(ma.grouper(sorted(ew_1), 100), 1))
 #     # output_data_ew = [j for i, j in data_ew.items()]
-#     # print(output_data_ew)
+
 #     #
 #     # data_ns = dict(enumerate(ma.grouper(sorted(ns_2), 100), 1))
 #     # output_data_ns = [j for i, j in data_ns.items()]
-#     # print(output_data_ns)
+
 #     # for i in range(1, len(data_group)):
 #     #     diff = abs(data_group[i][0] - output_data[-1][-1][0])
 #     #     if diff > 45:
@@ -236,7 +219,7 @@ def rewriteDataLatLon(lst):
 #     ax1.scatter(x1, y1, c='black')
 #     ax1.scatter(x2, y2, c='blue')
 #     plt.show()
-#     print(len(lst), len(all_data))
+#
 #     return all_data
 #
 # def graph_data(lst_all, n_data, s_data, e_data, w_data):
@@ -298,7 +281,6 @@ def compareGISDataToParsed(df):
             mid_prob_lst.append(mid_prob)
     high_prob_lst = [i for i in high_prob_lst if i]
     mid_prob_lst = [i for i in mid_prob_lst if i]
-    print(len(high_prob_lst), len(mid_prob_lst))
     pd.set_option('display.max_columns', None)
 
 

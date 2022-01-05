@@ -23,8 +23,6 @@ def main():
 
 
     line = findData(section, ts, ts_dir, rng, rng_dir, cursor)
-    print(line)
-    # ma.printLine(data)
 def findData(section, ts, ts_dir, rng, rng_dir, cursor):
     selectCommand = 'select a.APDNo'
     fromCommand = ' from [dbo].[tblAPDLoc] loc'

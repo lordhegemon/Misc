@@ -10,26 +10,23 @@ from shapely.geometry.polygon import Polygon
 def main():
     df_parsed = pd.read_csv("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\PlatSidesAll.csv", encoding="ISO-8859-1")
     data = df_parsed.to_numpy().tolist()
+
     conc_lst = []
     d = {}
     pd.set_option('display.max_columns', None)
+    print(df_parsed)
     for i in data:
         if i[9] not in d:
             d[i[9]] = []
         d[i[9]].append(i)
     dict_lst = [j for t, j in d.items()]
     for i in dict_lst:
-        # if i[0][-3] == '3637S04WS':
-        # print("\n\n", i[0][-3], "\n___________________________________")
         conc_lst = conc_lst + processEachSection(i)
     conc_lst = [i for i in conc_lst if i]
-    # ma.printLine(conc_lst)
     df_test = [{'Section': i[0], 'Township': int(float(i[1])), 'Township Direction': i[2], 'Range': int(float(i[3])),
                 'Range Direction': i[4], 'Baseline': i[5], 'Side': i[6], 'Length': i[7], 'Degrees': i[8], 'Minutes': i[9], 'Seconds': i[10], 'Direction': i[11], 'North Reference':i[12], 'Conc': i[13], 'Version':i[14]} for i in conc_lst]
-    # ma.printLine(df_test)
     df = pd.DataFrame(df_test, columns=['Section', 'Township', 'Township Direction', 'Range', 'Range Direction', 'Baseline', 'Side', 'Length', 'Degrees', 'Minutes', 'Seconds', 'Direction', 'North Reference', 'Conc', 'Version'])
-    # print(df)
-    df.to_csv('PlatSides.csv', index=False)
+    # df.to_csv('PlatSides.csv', index=False)
 
 def addMissingPts(lst):
     if len(lst) != 5:
@@ -56,7 +53,6 @@ def processEachSection(data):
                 d[i[8]] = []
             d[i[8]].append(i[6:9])
         dict_lst = [j for t, j in d.items()]
-
         pts_west = [i[:2] for i in dict_lst[0]][::-1]
         pts_north = [i[:2] for i in dict_lst[1]]
         pts_east = [i[:2] for i in dict_lst[2]]
@@ -102,7 +98,6 @@ def processEachSection(data):
         # conv = convertToDecimal(degrees_lst)
         # conv = pointsConverter(conv)
         return degrees_lst
-        # ma.printLine(degrees_lst)
         # fig, ax1 = plt.subplots()
         # x1, y1 = [i[0] for i in pts_west], [i[1] for i in pts_west]
         # x2, y2 = [i[0] for i in pts_north], [i[1] for i in pts_north]
@@ -139,16 +134,13 @@ def angleAndLengths(lst):
 def reconvertToDegrees(decVal, data):
     dir_val = -1
     # if data == 'west' or data == 'east':
-    #     print(decVal)
     #     if decVal < 270:
     #         dir_val = 2
     #     else:
     #         dir_val = 4
     #     decimal_value = abs(270 - decVal)
-    #     # print(decVal)
-    #     # print(decimal_value)
+
     #     deg_val = list(ma.convertDecimalToDegrees(decimal_value))
-    #     # print(deg_val)
     if data == 'east' or data == 'west':
         decimal_value = abs(90 - decVal)
         if decVal < 90:
@@ -190,6 +182,7 @@ def reconvertToDegrees(decVal, data):
 def convertToDecimal(data):
     data_converted = []
     for i in range(len(data)):
+        print(data[i])
         data[i] = data[i][6:12]
         data[i][1] = float(data[i][1])
         side, deg, min, sec, dir_val = data[i][1], data[i][2], data[i][3], data[i][4], data[i][5]

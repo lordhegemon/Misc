@@ -1,22 +1,23 @@
+import ModuleAgnostic as ma
+from shapely.geometry import Point, LineString
+from shapely.geometry.polygon import Polygon
+import ProcessCoordData
+import ProcessBHLLocation
+from itertools import chain
+from matplotlib import pyplot as plt
+import math
+import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
 
-fig, ax = plt.subplots()
-xdata, ydata = [], []
-ln, = plt.plot([], [], 'ro')
 
-def init():
-    ax.set_xlim(0, 2*np.pi)
-    ax.set_ylim(-1, 1)
-    return ln,
+def main():
+    center = [1, 1]
+    points = [[0,0], [0,1], [0,2], [1,2], [2,2], [2,1], [2,0], [1,0]]
+    new_data = []
+    df = pd.read_excel("C:\\Work\\RewriteAPD\\Datasets\\AngleToBearing.xlsx", dtype='object')
+    min_df = df[df['min_distance'] == df['min_distance'].min()]
+    print(df)
 
-def update(frame):
-    xdata.append(frame)
-    ydata.append(np.sin(frame))
-    ln.set_data(xdata, ydata)
-    return ln,
 
-ani = FuncAnimation(fig, update, frames=np.linspace(0, 2*np.pi, 128),
-                    init_func=init, blit=True)
-plt.show()
+
+main()

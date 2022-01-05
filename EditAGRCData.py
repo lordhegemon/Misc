@@ -5,8 +5,6 @@ import numpy as np
 from shapely.ops import cascaded_union
 from rtree import index
 from shapely.geometry import mapping
-# import CheckIfPlatDataCorrect
-
 import GatherPlatDataSet
 import ModuleAgnostic as ma
 import math
@@ -30,6 +28,7 @@ def renderAGRCDataDown():
     df_parsed = rewriteDataLatLon(df_parsed)
     print("number of original points", len(df_parsed))
     pd.set_option('display.max_columns', None)
+    # ma.printLine(df_parsed)
     for i in range(len(df_parsed)):
         df_parsed[i][:6], df_parsed[i][-1] = [int(j) for j in df_parsed[i][:6]], str(int(df_parsed[i][-1]))
     d = [[df_parsed[0]]]
@@ -41,7 +40,6 @@ def renderAGRCDataDown():
     tot_runner = 0
     counter = 0
     for i in df_parsed:
-
         tot_runner += len(i)
         data_set = [r[6:8] for r in i]
         tsr_data = i[0][:6]
@@ -55,14 +53,10 @@ def renderAGRCDataDown():
         counter += 1
 
     new_sides = ma.removeDupesListOfLists(new_sides)
-    # ma.printLine(new_sides)
-    # print('new sides')
-    saveData(new_sides)
-    # print('done')
+    # saveData(new_sides)
 
 
 def saveData(lst):
-    # lst = [i[:8] for i in lst]
     df = pd.DataFrame(columns=['Section', 'Township', 'Township Direction', 'Range', 'Range Direction', 'Baseline', 'Easting', 'Northing', 'Direction', 'ConcCode', 'AGRC Version'])
     counter = 0
 
@@ -70,17 +64,13 @@ def saveData(lst):
                 'Range Direction': i[4], 'Baseline': i[5], 'Easting': i[6], 'Northing': i[7], 'Direction': i[8], 'ConcCode': makeConcCode(i), 'AGRC Version': 'AGRC V.1'} for i in lst]
     df = pd.DataFrame(df_test, columns=['Section', 'Township', 'Township Direction', 'Range', 'Range Direction', 'Baseline', 'Easting', 'Northing', 'Direction', 'ConcCode', 'AGRC Version'])
     test_data = df.to_numpy().tolist()
-    # ma.printLine(test_data)
-    fig, ax1 = plt.subplots()
-    for i in test_data:
-        if i[-2] == "3637S04WS":
-            ax1.scatter([i[6]], [i[7]], c='red', s=25)
-            print(i)
-    # print(df)
-    # print(df)
+    # fig, ax1 = plt.subplots()
+    # for i in test_data:
+    #     if i[-2] == "3637S04WS":
+    #         ax1.scatter([i[6]], [i[7]], c='red', s=25)
+
     # for i in lst:
-    #     if counter % 1000 == 0:
-    #         print(counter)
+
     #     new_row = {'Section': i[0],
     #                'Township': int(float(i[1])),
     #                'Township Direction': i[2],
@@ -95,7 +85,7 @@ def saveData(lst):
     #     counter += 1
     # df.to_csv('OddballSections.csv', index=False)
     # df.to_csv('PlatSidesAll.csv', index=False)
-    plt.show()
+    # plt.show()
 
 def makeConcCode(data):
     data[0] = int(float(data[0]))
@@ -303,10 +293,8 @@ def changeAngles(label, angle, found_side_data):
     if label.lower() == 'west':
         if 360 > angle > 220:
             pass
-            # print(angle, abs(360 - (angle - 90)))
         elif 150 > angle > 50:
             pass
-            # print(angle, abs(angle - 90))
         else:
             if angle != 0:
                 fig, ax1 = plt.subplots()
@@ -372,7 +360,7 @@ def determinePointProximity(bounds, lst):
 
 
 def findCorners(lst):
-
+    ma.printLine(lst)
     try:
         lst = checkClockwisePts(lst)
     except TypeError:
@@ -402,9 +390,9 @@ def findCorners(lst):
     # # corners, data_lengths = checkForPointsTooCloseToCorners(data_lengths, centroid, lst, counter)
     # if counter == 0:
     #     print(2, corners)
-    # ma.printLine(data_lengths)
     corners = cornerGeneratorProcess(data_lengths)
     data_lengths = reorganizeLstPointsWithAngle(data_lengths, centroid)
+    # ma.printLine(data_lengths)
     east_side = arrangeDirectionData(corners, data_lengths, 'east')
     north_side = arrangeDirectionData(corners, data_lengths, 'north')
     west_side = arrangeDirectionData(corners, data_lengths, 'west')
@@ -417,20 +405,22 @@ def findCorners(lst):
 
     # all_data = west_side[1:] + north_side[1:] + east_side[1:] + south_side[1:]
     all_data = west_side + north_side + east_side + south_side
-    # ma.printLine(all_data)
-
-    # fig, ax1 = plt.subplots()
+    ma.printLine(data_lengths)
+    fig, ax1 = plt.subplots()
     # # # x1, y1 = [i[0] for i in found_data_theoretical_pts], [i[1] for i in found_data_theoretical_pts]
-    # # # x2, y2 = [i[0] for i in data], [i[1] for i in data]
+    x1, y1  = [i[0] for i in data_lengths], [i[1] for i in data_lengths]
+    for i in range(len(data_lengths)):
+        ax1.text(data_lengths[i][0], data_lengths[i][1], str(round(data_lengths[i][-1],2)))
     # x1, y1 = [i[0] for i in east_side], [i[1] for i in east_side]
     # x2, y2 = [i[0] for i in north_side], [i[1] for i in north_side]
     # x3, y3 = [i[0] for i in west_side], [i[1] for i in west_side]
     # x4, y4 = [i[0] for i in south_side], [i[1] for i in south_side]
-    # ax1.scatter(x1, y1, c='black')
+
+    ax1.scatter(x1, y1, c='black')
     # ax1.scatter(x2, y2, c='blue')
     # ax1.scatter(x3, y3, c='red')
     # ax1.scatter(x4, y4, c='yellow')
-    # plt.show()
+    plt.show()
     # east_side = findSideValues(lst, corners, 'east')
     # north_side = findSideValues(lst, corners, 'north')
     # west_side = findSideValues(lst, corners, 'west')
