@@ -17,7 +17,6 @@ import EditAGRCData
 def turnIntoDB():
     conn = sqlite3.connect("C:\\Work\\RewriteAPD\\APD_Data.db")
     df_parsed_utm_latlon = pd.read_excel("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\UTM\\LatLonUTM.xlsx", dtype='object')
-    print(len(df_parsed_utm_latlon))
     df_parsed_utm_latlon.to_sql("SectionDataCoordinates", conn, if_exists='replace')
 
     df_parsed_utm_latlon = pd.read_csv("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\UTM\\CasingStrengths.csv", dtype='object')
@@ -78,6 +77,8 @@ def addZeroesForConc(i):
     return conc_code
 
 
+
+
 def main():
     df_read = pd.read_csv("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\UTM\\PlatSidesAll.csv", encoding="ISO-8859-1")
     df_read_test = df_read.to_numpy().tolist()
@@ -86,30 +87,20 @@ def main():
         df_read_test[i].append(conc_out)
     df_read_lst = ma.groupByLikeValues(df_read_test, -1)
     new_sides = coordsChecker(df_read_lst)
-    new_sides = [i[:-1] for i in new_sides]
+    # new_sides = [i[:-1] for i in new_sides]
     new_sides = ma.removeDupesListOfLists(new_sides)
     new_sides = alterAGRCData(new_sides)
-    # ma.printLine(new_sides)
 
-
-
-
-
-
-
-    len_lst = [len(i) for i in df_read_lst]
 
     print("\n\n\n\n___________________________________________________________________________\nGO")
     added_data = []
     # df_parsed = pd.read_csv("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\PlatGridNumbers.csv", encoding="ISO-8859-1")
     df_parsed = pd.read_csv("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\PlatAllSidesFour.csv", encoding="ISO-8859-1")
     data_test = df_parsed.to_numpy().tolist()
-    data_test = [i for i in data_test if 'agrc' not in i[-1].lower()]
     conn, cursor = sqlConnect()
     sql_lst, sql_conc = parseDatabaseForDataWithSectionsAndSHL(cursor)
     output = FindSurfaceLocationsAndPlats.matcherDF1(df_parsed, sql_lst)
-    print('done')
-    # d = {}
+
     pd.set_option('display.max_columns', None)
     conc_codes_all = []
     version_number = 1
@@ -118,7 +109,6 @@ def main():
         if lst != []:
             data = lst[0]
             conc_code_merged, conc_code = reTranslateData(data[0])
-
             if conc_code_merged not in conc_codes_all:
                 version_number = 1
             else:
@@ -128,51 +118,12 @@ def main():
             for j in data:
                 counter +=1
                 latlon = list(utm.to_latlon(j[-3], j[-2], 12, 'T'))
-
                 data_created = j[:-1] + latlon + [conc_code_merged] + ["V.1"]
                 data_created[6] = float(data_created[6])
                 data_created[7] = float(data_created[7])
                 added_data.append(data_created)
-                # if conc_code_merged == '3603S02WU':
-                #     print(counter, data_created)
-    # for i in sql_lst:
-    #     section_data_df = df_parsed[(df_parsed['Section'] == i[0])
-    #                                 & (df_parsed['Township'] == i[1])
-    #                                 & (df_parsed['Township Direction'] == i[2])
-    #                                 & (df_parsed['Range'] == i[3])
-    #                                 & (df_parsed['Range Direction'] == i[4])
-    #                                 & (df_parsed['Baseline'] == i[5])
-    #                                 & (df_parsed['Version'].str.contains(r'AGRC') == False)]
-    #     tsr_data, conc_code, conc_code_all = reTranslateData(i)
-    #     if conc_code not in codes:
-    #         codes.append(conc_code)
-    #         if len(section_data_df) > 0:
-    #             counter += 1
-    #             data = section_data_df.to_numpy().tolist()
-    #             data_sorted = ma.oneToMany(data, 16)
-    #
-    #             try:
-    #                 for j in data_sorted:
-    #                     version_name = j[-1][-1]
-    #                     conv_data = convertToDecimal(copy.deepcopy(j))
-    #                     conv_data = pointsConverter(conv_data)
-    #
-    #                     modified_shl = findSurfaceCoordinate(conv_data, tsr_data)
-    #                     data_utm = convertData(modified_shl, conv_data, i[8:10])
-    #                     for r in range(len(data_utm)):
-    #                         latlon = list(utm.to_latlon(data_utm[r][0], data_utm[r][1], 12, 'T'))
-    #                         conc_code_all[2] = int(float(translateDirectionToNumber('township', conc_code_all[2])))
-    #                         conc_code_all[4] = int(float(translateDirectionToNumber('rng', conc_code_all[4])))
-    #                         conc_code_all[5] = int(float(translateDirectionToNumber('baseline', conc_code_all[5])))
-    #                         new_line = conc_code_all + data_utm[r] + latlon + [conc_code] + [version_name]
-    #                         new_data_file.append(new_line)
-    #
-    #
-    #             except TypeError:
-    #                 pass
-    # ma.printLine(added_data[:10])
+
     added_data = new_sides + added_data
-    # groupAndAssembleData(all_data)
     df_test = [{'Section': i[0], 'Township': int(float(i[1])), 'Township Direction': i[2], 'Range': int(float(i[3])),
                 'Range Direction': i[4], 'Baseline': i[5], 'Easting': float(i[6]), 'Northing': float(i[7]), 'Latitude': float(i[8]), "Longitude": float(i[9]), 'Conc': i[10], 'Version': i[11]} for i in added_data]
     df = pd.DataFrame(df_test, columns=['Section', 'Township', 'Township Direction', 'Range', 'Range Direction', 'Baseline', 'Easting', 'Northing', "Latitude", "Longitude", 'Conc', 'Version'])
@@ -182,25 +133,21 @@ def alterAGRCData(lst):
     for i in range(len(lst)):
         latlon = list(utm.to_latlon(lst[i][6], lst[i][7], 12, 'T'))
         conc_code = EditAGRCData.makeConcCode(copy.deepcopy(lst[i]))
-        lst[i] = lst[i] + latlon + [conc_code] + ["AGRC V.1"]
+        # lst[i] = lst[i] + latlon + [conc_code] + ["AGRC V.1"]
+        lst[i] = lst[i][:-1] + [conc_code] + ["AGRC V.1"] + [lst[i][:-1]]
     return lst
-        # print(lst[i])
         # lst[i].append(conc_code)
 
 def groupAndAssembleData(lst):
     lst_grouped = ma.groupByLikeValues(copy.deepcopy(lst), -2)
     for i in lst_grouped:
         grouped_data = ma.groupByLikeValues(copy.deepcopy(i), -1)
-        # print(len(grouped_data))
 
-        # ma.printLine(grouped_data)
         if len(grouped_data) > 1:
             for j in grouped_data:
                 clockwiseOrganizer(j)
         else:
             grouped_data[0]
-            # print(len(grouped_data))
-    # ma.printLine(lst_grouped)
 
 
 def clockwiseOrganizer(lst):
@@ -235,8 +182,6 @@ def coordsChecker(lst):
         data_x, data_y = [r[0] for r in data_set], [r[1] for r in data_set]
         if max(data_x) - min(data_x) < 10000 and max(data_y) - min(data_y) < 10000 and len(data_set) > 10:
             data_output = EditAGRCData.findCorners(data_set)
-            # if len(data_output) > 20:
-            #     print(data_output)
             for j in range(len(data_output)):
                 data_output[j] = tsr_data + data_output[j]
                 new_sides.append(data_output[j])
@@ -751,6 +696,6 @@ def lineSegmentCalculator(xy1, xy2, direct, cardinal_dir):
     return data_out
 
 #
-# main()
+main()
 # main2()
-turnIntoDB()
+# turnIntoDB()

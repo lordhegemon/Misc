@@ -60,7 +60,6 @@ def findMain(lst):
     # for i in visual_lst[i]:
     #     print(len(i))
 
-        # ModuleAgnostic.printLine(i)
 
     """Seperate the generated data into whether it is shut in or producing"""
     prod_lst = [[count_data_left[i][0][k][-1] for k in range(1, len(count_data_left[i][0]))] for i in range(len(count_data_left))]

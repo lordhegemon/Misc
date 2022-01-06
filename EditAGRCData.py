@@ -28,7 +28,6 @@ def renderAGRCDataDown():
     df_parsed = rewriteDataLatLon(df_parsed)
     print("number of original points", len(df_parsed))
     pd.set_option('display.max_columns', None)
-    # ma.printLine(df_parsed)
     for i in range(len(df_parsed)):
         df_parsed[i][:6], df_parsed[i][-1] = [int(j) for j in df_parsed[i][:6]], str(int(df_parsed[i][-1]))
     d = [[df_parsed[0]]]
@@ -360,7 +359,6 @@ def determinePointProximity(bounds, lst):
 
 
 def findCorners(lst):
-    ma.printLine(lst)
     try:
         lst = checkClockwisePts(lst)
     except TypeError:
@@ -392,7 +390,6 @@ def findCorners(lst):
     #     print(2, corners)
     corners = cornerGeneratorProcess(data_lengths)
     data_lengths = reorganizeLstPointsWithAngle(data_lengths, centroid)
-    # ma.printLine(data_lengths)
     east_side = arrangeDirectionData(corners, data_lengths, 'east')
     north_side = arrangeDirectionData(corners, data_lengths, 'north')
     west_side = arrangeDirectionData(corners, data_lengths, 'west')
@@ -402,25 +399,23 @@ def findCorners(lst):
     north_side = [i[:2] + ["NORTH"] for i in north_side]
     south_side = [i[:2] + ["SOUTH"] for i in south_side]
 
-
     # all_data = west_side[1:] + north_side[1:] + east_side[1:] + south_side[1:]
     all_data = west_side + north_side + east_side + south_side
-    ma.printLine(data_lengths)
-    fig, ax1 = plt.subplots()
+    # fig, ax1 = plt.subplots()
     # # # x1, y1 = [i[0] for i in found_data_theoretical_pts], [i[1] for i in found_data_theoretical_pts]
-    x1, y1  = [i[0] for i in data_lengths], [i[1] for i in data_lengths]
-    for i in range(len(data_lengths)):
-        ax1.text(data_lengths[i][0], data_lengths[i][1], str(round(data_lengths[i][-1],2)))
+    # x1, y1  = [i[0] for i in data_lengths], [i[1] for i in data_lengths]
+    # for i in range(len(data_lengths)):
+    #     ax1.text(data_lengths[i][0], data_lengths[i][1], str(round(data_lengths[i][-1],2)))
     # x1, y1 = [i[0] for i in east_side], [i[1] for i in east_side]
     # x2, y2 = [i[0] for i in north_side], [i[1] for i in north_side]
     # x3, y3 = [i[0] for i in west_side], [i[1] for i in west_side]
     # x4, y4 = [i[0] for i in south_side], [i[1] for i in south_side]
 
-    ax1.scatter(x1, y1, c='black')
+    # ax1.scatter(x1, y1, c='black')
     # ax1.scatter(x2, y2, c='blue')
     # ax1.scatter(x3, y3, c='red')
     # ax1.scatter(x4, y4, c='yellow')
-    plt.show()
+    # plt.show()
     # east_side = findSideValues(lst, corners, 'east')
     # north_side = findSideValues(lst, corners, 'north')
     # west_side = findSideValues(lst, corners, 'west')
@@ -482,7 +477,6 @@ def findCorners(lst):
     #     ax1.scatter(x5, y5, c='grey', s=5)
     #     ax1.scatter(x6, y6, c='red', s = 1)
     #     plt.show()
-
     return all_data
 
 
