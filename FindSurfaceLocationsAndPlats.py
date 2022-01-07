@@ -490,7 +490,9 @@ def transformData2(lst):
     coord_data_lst = []
     coord_data_lst_grid = []
     shl_coords = []
+
     for i in lst:
+        # ma.printLine(i)
         coord_data_lst.append([])
         coord_data_lst_grid.append([])
         all_data = []
@@ -511,6 +513,7 @@ def transformData2(lst):
                 for j in coordLst:
                     for k in j:
                         coord_data_lst[-1].append([i[0][:6] + [k[0] * 0.3048 + change_x, k[1] * 0.3048 + change_y] + [i[0][13]]])
+
                         all_data.append(k)
                         counter += 1
                 coord_data_lst[-1] = [k[0] for k in coord_data_lst[-1]]
@@ -537,21 +540,20 @@ def transformData2(lst):
     #     closure_x, closure_y = round(end[0] - start[0], 4), round(end[1] - start[1], 4)
     #     if abs(closure_x) > 1 or abs(closure_y) > 1:
     #         coord_data_lst_grid[i][-1] = coord_data_lst_grid[i][0]
-
-    zp = ZoomPan()
+    # zp = ZoomPan()
     # fig, ax = plt.subplots()
     # figZoom, figPan = zp.zoom_factory(ax, base_scale=1.1), zp.pan_factory(ax)
 
-    shl_coords = [list(t) for t in set(tuple(element) for element in shl_coords)]
-    all_x = [j[0] for j in shl_coords]
-    all_y = [j[1] for j in shl_coords]
-    all_text = [j[2] for j in shl_coords]
-
-    # ax.scatter([surfaceCoord[0]], [surfaceCoord[1]], c='black')
-    coordLst_unmerged = list(itertools.chain.from_iterable(coord_data_lst))
-    coord_data_lst_grid_unmerged = list(itertools.chain.from_iterable(coord_data_lst_grid))
-    all_unmerged = list(itertools.chain.from_iterable(all_data))
-    # saveCoordData(all_unmerged)
+    # shl_coords = [list(t) for t in set(tuple(element) for element in shl_coords)]
+    # all_x = [j[0] for j in shl_coords]
+    # all_y = [j[1] for j in shl_coords]
+    # all_text = [j[2] for j in shl_coords]
+    #
+    # # ax.scatter([surfaceCoord[0]], [surfaceCoord[1]], c='black')
+    # coordLst_unmerged = list(itertools.chain.from_iterable(coord_data_lst))
+    # coord_data_lst_grid_unmerged = list(itertools.chain.from_iterable(coord_data_lst_grid))
+    # all_unmerged = list(itertools.chain.from_iterable(all_data))
+    # # saveCoordData(all_unmerged)
     return all_data
 
 def convertToDecimal(data):

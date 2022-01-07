@@ -80,12 +80,15 @@ def addZeroesForConc(i):
 
 
 def main():
+    bad_lst = ['3415S22ES', '3415S22ES', '3115S22ES', '3215S22ES', '3515S22ES', '3615S23ES', '3615S22ES', '3115S23ES', '3515S23ES', '3215S24ES', '3215S23ES', '3315S23ES', '3415S23ES', '3115S24ES', '3515S24ES', '3615S24ES', '3115S25ES', '3415S25ES', '3115S26ES']
+    strange_data = ['1102S05WS', '3609N08WS', '0805S02EU', '0105S01EU', '2904S01EU', '1505S02EU']
     df_read = pd.read_csv("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\UTM\\PlatSidesAll.csv", encoding="ISO-8859-1")
     df_read_test = df_read.to_numpy().tolist()
     for i in range(len(df_read_test)):
         conc_out = "".join([str(j) for j in df_read_test[i][:6]])
         df_read_test[i].append(conc_out)
     df_read_lst = ma.groupByLikeValues(df_read_test, -1)
+    # ma.printLine(df_read_lst)
     new_sides = coordsChecker(df_read_lst)
     # new_sides = [i[:-1] for i in new_sides]
     new_sides = ma.removeDupesListOfLists(new_sides)
@@ -105,7 +108,9 @@ def main():
     conc_codes_all = []
     version_number = 1
     for i in output:
+
         lst = FindSurfaceLocationsAndPlats.transformData2(i)
+        # print(lst)
         if lst != []:
             data = lst[0]
             conc_code_merged, conc_code = reTranslateData(data[0])
@@ -118,25 +123,123 @@ def main():
             for j in data:
                 counter +=1
                 latlon = list(utm.to_latlon(j[-3], j[-2], 12, 'T'))
-                data_created = j[:-1] + latlon + [conc_code_merged] + ["V.1"]
+                # data_created = j[:-1] + latlon + [conc_code_merged] + ["V.1"]
+                data_created = j[:-1] + [conc_code_merged] + ["V.1"]
                 data_created[6] = float(data_created[6])
                 data_created[7] = float(data_created[7])
                 added_data.append(data_created)
-
+    # ma.printLine(added_data)
+    # ma.printLine(new_sides)
+    added_data = ma.groupByLikeValues(added_data, -2)
+    # ma.printLine(df_read_lst)
+    added_data = coordsChecker(added_data)
+    added_data = ma.removeDupesListOfLists(added_data)
+    added_data = alterAGRCData2(added_data)
+    odd_data = []
+    # ma.printLine(added_data)
     added_data = new_sides + added_data
-    df_test = [{'Section': i[0], 'Township': int(float(i[1])), 'Township Direction': i[2], 'Range': int(float(i[3])),
-                'Range Direction': i[4], 'Baseline': i[5], 'Easting': float(i[6]), 'Northing': float(i[7]), 'Latitude': float(i[8]), "Longitude": float(i[9]), 'Conc': i[10], 'Version': i[11]} for i in added_data]
-    df = pd.DataFrame(df_test, columns=['Section', 'Township', 'Township Direction', 'Range', 'Range Direction', 'Baseline', 'Easting', 'Northing', "Latitude", "Longitude", 'Conc', 'Version'])
+    for i in range(len(added_data)):
+        print(added_data[i][8])
+        if added_data[i][8] in bad_lst:
+            added_data[i] = []
+    added_data = [i for i in added_data if i]
+    for i in range(len(added_data)):
+        if added_data[i][8] in strange_data:
+            odd_data.append(added_data[i])
+            added_data[i] = []
+    added_data = [i for i in added_data if i]
+    checkForCardinalAlignment(added_data)
+    # df_test = [{'Section': i[0], 'Township': int(float(i[1])), 'Township Direction': i[2], 'Range': int(float(i[3])),
+    #             'Range Direction': i[4], 'Baseline': i[5], 'Easting': float(i[6]), 'Northing': float(i[7]), 'Latitude': float(i[8]), "Longitude": float(i[9]), 'Conc': i[10], 'Version': i[11]} for i in added_data]
+    # df = pd.DataFrame(df_test, columns=['Section', 'Township', 'Township Direction', 'Range', 'Range Direction', 'Baseline', 'Easting', 'Northing', "Latitude", "Longitude", 'Conc', 'Version'])
     # df.to_csv('GridDataLatLonUTM.csv', index=False)
 
 def alterAGRCData(lst):
+
     for i in range(len(lst)):
         latlon = list(utm.to_latlon(lst[i][6], lst[i][7], 12, 'T'))
         conc_code = EditAGRCData.makeConcCode(copy.deepcopy(lst[i]))
         # lst[i] = lst[i] + latlon + [conc_code] + ["AGRC V.1"]
-        lst[i] = lst[i][:-1] + [conc_code] + ["AGRC V.1"] + [lst[i][:-1]]
+        # print(lst[i])
+        lst[i] = lst[i][:-1] + [conc_code] + ["AGRC V.1"] + [lst[i][-1]]
+
     return lst
-        # lst[i].append(conc_code)
+
+def alterAGRCData2(lst):
+    for i in range(len(lst)):
+        latlon = list(utm.to_latlon(lst[i][6], lst[i][7], 12, 'T'))
+        conc_code = EditAGRCData.makeConcCode(copy.deepcopy(lst[i]))
+        # lst[i] = lst[i] + latlon + [conc_code] + ["AGRC V.1"]
+
+        lst[i] = lst[i][:-1] + [conc_code] + ["V.1"] + [lst[i][-1]]
+
+    return lst
+
+
+
+def checkForCardinalAlignment(lst):
+    test_lst = ma.groupByLikeValues(lst, -3)
+    for i in test_lst:
+        subset_lst = ma.groupByLikeValues(i, -2)
+        for j in subset_lst:
+            direction_lst = ma.groupByLikeValues(j, -1)
+            for k in direction_lst:
+                assembleCardinalDirections(k, j)
+
+
+def assembleCardinalDirections(lst, subset_lst):
+    west_data = ["SW", "WSW", "W", "WNW", 'NW']
+    east_data = ["SE", "ESE", "E", "ENE", 'NE']
+    coords_lst = [[i[6], i[7]] for i in lst]
+    coords_lst_all = [[i[6], i[7]] for i in subset_lst]
+    if lst[0][-1].lower() == 'west':
+        lst_sorted = sorted(lst, key=lambda x: x[7])
+        if len(lst) != 5:
+            # lst = correctPlatDataForTooFewPoints(lst)
+            lst = dividePoints(coords_lst, coords_lst_all, lst)
+            ma.printLine(lst)
+        # x1, y1 = [i[6] for i in subset_lst], [i[7] for i in subset_lst]
+        # x2, y2 = [i[6] for i in lst_sorted], [i[7] for i in lst_sorted]
+        # fig, ax1 = plt.subplots()
+        # ax1.plot(x1, y1, c='black')
+        # for i in range(len(lst)):
+        #     ax1.text(x2[i], y2[i], i)
+        # plt.show()
+
+
+
+def correctPlatDataForTooFewPoints(lst):
+    print()
+    coords_lst = [[i[6], i[7]] for i in lst]
+    div_lst = [coords_lst[0], coords_lst[-1]]
+    other_coords = [i for i in coords_lst if i not in div_lst]
+    if len(other_coords) != 2:
+        print(ma.printLine(lst))
+    base_pts = []
+
+
+    for i in range(1, 4):
+        div = i / 4
+        base_pts.append(findPointsOnLine(div_lst[0], div_lst[1], div))
+    data_all = [div_lst[0]] + base_pts + [div_lst[1]]
+
+    if len(other_coords) == 0:
+        return data_all
+
+
+
+
+    for xy1, xy2 in zip(coords_lst, coords_lst[1:]):
+        print(ma.findSegmentLength(xy1, xy2))
+        # new_points_1.append(xy1)
+        # for i in range(1, 100):
+        #     div = i / 100
+        #     new_points_1.append(findPointsOnLine(xy1, xy2, div))
+        #     new_pts_side.append(findPointsOnLine(xy1, xy2, div))
+    # for i in data_all:
+    #     for j in other_coords:
+    #         data = ma.findSegmentLength(i, j)
+            # print(i,j,data)
 
 def groupAndAssembleData(lst):
     lst_grouped = ma.groupByLikeValues(copy.deepcopy(lst), -2)
@@ -172,6 +275,23 @@ def clockwiseOrganizer(lst):
 
 
 def coordsChecker(lst):
+    tot_runner = 0
+    new_sides = []
+    for i in lst:
+        # print(i)
+        tot_runner += len(i)
+        data_set = [r[6:8] for r in i]
+        tsr_data = i[0][:6]
+        data_x, data_y = [r[0] for r in data_set], [r[1] for r in data_set]
+        if max(data_x) - min(data_x) < 10000 and max(data_y) - min(data_y) < 10000 and len(data_set) > 10:
+            # ma.printLine(data_set)
+            data_output = EditAGRCData.findCorners(data_set)
+            for j in range(len(data_output)):
+                data_output[j] = tsr_data + data_output[j]
+                new_sides.append(data_output[j])
+    return new_sides
+
+def coordsChecker2(lst):
     tot_runner = 0
     new_sides = []
     for i in lst:
@@ -278,8 +398,6 @@ def assembleDataCardinalDirections(lst):
 
 def arranger(lst, label):
 
-    # all_data = [[i[0], i[1]] for i in lst]
-
     if label == 'west' or label == 'east':
         sorted_data = sorted(lst, key=lambda r: r[1], reverse=True)
         return sorted_data
@@ -287,7 +405,7 @@ def arranger(lst, label):
         sorted_data = sorted(lst, key=lambda r: r[0])
         return sorted_data
 
-def dividePoints(side, all_data):
+def dividePoints(side, all_data, o_lst):
     length_lst = []
     all_pts = [[],[],[],[],[]]
     all_data = [[i[0], i[1]] for i in all_data]
@@ -341,35 +459,45 @@ def dividePoints(side, all_data):
                 return all_pts
 
     elif len(side) == 4:
-        print("length 4")
         side_data = [i[:2] for i in side]
         dict_lst = dict(enumerate(ma.grouper(sorted(length_lst), 600), 1))
         dict_lst = [j for t, j in dict_lst.items()]
         long_len = min(dict_lst, key=len)
-        # print(position)
-        print(length_lst)
-        print(long_len)
-        position = length_lst.index(long_len)
+        try:
+            position = length_lst.index(long_len)
 
-        if position == 0:
-            # print('pos1')
-            pt1, pt2 = side_data[0], side_data[1]
-            for j in range(2):
-                div = j / 2
-                all_pts[j] = [findPointsOnLine(pt1, pt2, div), "P"]
-            all_pts[2], all_pts[3], all_pts[4] = [side[1][:2], "T"], [side[2][:2], "T"], [side[3][:2], "T"]
-            return all_pts
-        elif position == 2:
-            # print('pos2')
-            pt1, pt2 = side_data[2], side_data[3]
-            for j in range(2):
-                div = j / 2
-                all_pts[2+j] = [findPointsOnLine(pt1, pt2, div), "P"]
+            if position == 0:
+                pt1, pt2 = side_data[0], side_data[1]
+                for j in range(2):
+                    div = j / 2
+                    all_pts[j] = [findPointsOnLine(pt1, pt2, div), "P"]
+                all_pts[2], all_pts[3], all_pts[4] = [side[1][:2], "T"], [side[2][:2], "T"], [side[3][:2], "T"]
+                return all_pts
+            elif position == 2:
+                pt1, pt2 = side_data[2], side_data[3]
+                for j in range(2):
+                    div = j / 2
+                    all_pts[2+j] = [findPointsOnLine(pt1, pt2, div), "P"]
 
-            all_pts[0], all_pts[1], all_pts[4] = [side[0], "T"], [side[1], "T"], [side[3], "T"]
-            return all_pts
-        else:
-            # print(position)
+                all_pts[0], all_pts[1], all_pts[4] = [side[0], "T"], [side[1], "T"], [side[3], "T"]
+                return all_pts
+            else:
+                print("error position")
+                ma.printLine(o_lst)
+                fig, ax1 = plt.subplots()
+
+                # test_data = [i for i in all_pts if i]
+                x3, y3 = [i[0] for i in side_data], [i[1] for i in side_data]
+                x2, y2 = [i[0] for i in all_data], [i[1] for i in all_data]
+                for i in range(len(x3)):
+                    ax1.text(x3[i], y3[i], str(i))
+                ax1.plot(x2, y2, c='red')
+                ax1.scatter(x3, y3, c='black')
+                plt.show()
+                return [[0]]
+        except ValueError:
+            print("error input")
+            ma.printLine(o_lst)
             fig, ax1 = plt.subplots()
 
             # test_data = [i for i in all_pts if i]
@@ -377,10 +505,10 @@ def dividePoints(side, all_data):
             x2, y2 = [i[0] for i in all_data], [i[1] for i in all_data]
             for i in range(len(x3)):
                 ax1.text(x3[i], y3[i], str(i))
-            ax1.scatter(x2, y2, c='red', s=150)
+            ax1.plot(x2, y2, c='red')
             ax1.scatter(x3, y3, c='black')
             plt.show()
-
+            return [[0]]
 
         # else:
 
