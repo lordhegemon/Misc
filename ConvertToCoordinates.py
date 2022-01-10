@@ -16,7 +16,8 @@ import EditAGRCData
 
 def turnIntoDB():
     conn = sqlite3.connect("C:\\Work\\RewriteAPD\\APD_Data.db")
-    df_parsed_utm_latlon = pd.read_excel("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\UTM\\LatLonUTM.xlsx", dtype='object')
+    # df_parsed_utm_latlon = pd.read_excel("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\UTM\\LatLonUTM.xlsx", dtype='object')
+    df_parsed_utm_latlon = pd.read_excel("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\UTM\\GridDataLatLonUTMAligned.xlsx", dtype='object')
     df_parsed_utm_latlon.to_sql("SectionDataCoordinates", conn, if_exists='replace')
 
     df_parsed_utm_latlon = pd.read_csv("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\UTM\\CasingStrengths.csv", dtype='object')
@@ -88,7 +89,6 @@ def main():
         conc_out = "".join([str(j) for j in df_read_test[i][:6]])
         df_read_test[i].append(conc_out)
     df_read_lst = ma.groupByLikeValues(df_read_test, -1)
-    # ma.printLine(df_read_lst)
     new_sides = coordsChecker(df_read_lst)
     # new_sides = [i[:-1] for i in new_sides]
     new_sides = ma.removeDupesListOfLists(new_sides)
@@ -110,7 +110,6 @@ def main():
     for i in output:
 
         lst = FindSurfaceLocationsAndPlats.transformData2(i)
-        # print(lst)
         if lst != []:
             data = lst[0]
             conc_code_merged, conc_code = reTranslateData(data[0])
@@ -128,18 +127,18 @@ def main():
                 data_created[6] = float(data_created[6])
                 data_created[7] = float(data_created[7])
                 added_data.append(data_created)
-    # ma.printLine(added_data)
-    # ma.printLine(new_sides)
+
     added_data = ma.groupByLikeValues(added_data, -2)
-    # ma.printLine(df_read_lst)
+
     added_data = coordsChecker(added_data)
     added_data = ma.removeDupesListOfLists(added_data)
     added_data = alterAGRCData2(added_data)
     odd_data = []
-    # ma.printLine(added_data)
+
     added_data = new_sides + added_data
+
+
     for i in range(len(added_data)):
-        print(added_data[i][8])
         if added_data[i][8] in bad_lst:
             added_data[i] = []
     added_data = [i for i in added_data if i]
@@ -148,11 +147,19 @@ def main():
             odd_data.append(added_data[i])
             added_data[i] = []
     added_data = [i for i in added_data if i]
-    checkForCardinalAlignment(added_data)
+    all_data_aligned = checkForCardinalAlignment(added_data)
+    for i in range(len(odd_data)):
+        odd_data[i][-1] = 'odd'
+    all_data_aligned = all_data_aligned + odd_data
     # df_test = [{'Section': i[0], 'Township': int(float(i[1])), 'Township Direction': i[2], 'Range': int(float(i[3])),
     #             'Range Direction': i[4], 'Baseline': i[5], 'Easting': float(i[6]), 'Northing': float(i[7]), 'Latitude': float(i[8]), "Longitude": float(i[9]), 'Conc': i[10], 'Version': i[11]} for i in added_data]
     # df = pd.DataFrame(df_test, columns=['Section', 'Township', 'Township Direction', 'Range', 'Range Direction', 'Baseline', 'Easting', 'Northing', "Latitude", "Longitude", 'Conc', 'Version'])
-    # df.to_csv('GridDataLatLonUTM.csv', index=False)
+    print(all_data_aligned[0])
+    df_test = [{'Section': i[0], 'Township': int(float(i[1])), 'Township Direction': i[2], 'Range': int(float(i[3])),
+                'Range Direction': i[4], 'Baseline': i[5], 'Easting': float(i[6]), 'Northing': float(i[7]), 'Alignment': i[10], 'new_code': i[8], 'Version': i[9]} for i in all_data_aligned]
+    df = pd.DataFrame(df_test, columns=['Section', 'Township', 'Township Direction', 'Range', 'Range Direction', 'Baseline', 'Easting', 'Northing', 'Alignment', 'new_code', 'Version'])
+    print(df)
+    df.to_csv('GridDataLatLonUTMAligned.csv', index=False)
 
 def alterAGRCData(lst):
 
@@ -160,7 +167,6 @@ def alterAGRCData(lst):
         latlon = list(utm.to_latlon(lst[i][6], lst[i][7], 12, 'T'))
         conc_code = EditAGRCData.makeConcCode(copy.deepcopy(lst[i]))
         # lst[i] = lst[i] + latlon + [conc_code] + ["AGRC V.1"]
-        # print(lst[i])
         lst[i] = lst[i][:-1] + [conc_code] + ["AGRC V.1"] + [lst[i][-1]]
 
     return lst
@@ -178,43 +184,95 @@ def alterAGRCData2(lst):
 
 
 def checkForCardinalAlignment(lst):
+    all_vals_aligned = []
     test_lst = ma.groupByLikeValues(lst, -3)
     for i in test_lst:
         subset_lst = ma.groupByLikeValues(i, -2)
         for j in subset_lst:
             direction_lst = ma.groupByLikeValues(j, -1)
             for k in direction_lst:
-                assembleCardinalDirections(k, j)
-
-
+                new_lst = assembleCardinalDirections(k, j)
+                all_vals_aligned.append(new_lst)
+    all_vals_aligned = list(itertools.chain.from_iterable(all_vals_aligned))
+    return all_vals_aligned
 def assembleCardinalDirections(lst, subset_lst):
     west_data = ["SW", "WSW", "W", "WNW", 'NW']
     east_data = ["SE", "ESE", "E", "ENE", 'NE']
+    north_data = ['NW', "NWN", "N", 'NEN', 'NE']
+    south_data = ['SW', "SWS", "S", 'SES', 'SE']
     coords_lst = [[i[6], i[7]] for i in lst]
     coords_lst_all = [[i[6], i[7]] for i in subset_lst]
-    if lst[0][-1].lower() == 'west':
-        lst_sorted = sorted(lst, key=lambda x: x[7])
-        if len(lst) != 5:
-            # lst = correctPlatDataForTooFewPoints(lst)
-            lst = dividePoints(coords_lst, coords_lst_all, lst)
-            ma.printLine(lst)
-        # x1, y1 = [i[6] for i in subset_lst], [i[7] for i in subset_lst]
-        # x2, y2 = [i[6] for i in lst_sorted], [i[7] for i in lst_sorted]
-        # fig, ax1 = plt.subplots()
-        # ax1.plot(x1, y1, c='black')
-        # for i in range(len(lst)):
-        #     ax1.text(x2[i], y2[i], i)
-        # plt.show()
-
-
+    if len(lst) != 5:
+        if lst[0][-1].lower() == 'west':
+            lst_new_pts = dividePoints(coords_lst, coords_lst_all, lst)
+            lst_new_pts = reEditNewPts(lst, lst_new_pts)
+            lst_new_pts = sorted(lst_new_pts, key=lambda x: x[7])
+            for i in range(len(lst_new_pts)):
+                lst_new_pts[i][-1] = west_data[i]
+        if lst[0][-1].lower() == 'east':
+            lst_new_pts = dividePoints(coords_lst, coords_lst_all, lst)
+            lst_new_pts = reEditNewPts(lst, lst_new_pts)
+            lst_new_pts = sorted(lst_new_pts, key=lambda x: x[7])
+            for i in range(len(lst_new_pts)):
+                lst_new_pts[i][-1] = east_data[i]
+            lst_new_pts = lst_new_pts[::-1]
+        if lst[0][-1].lower() == 'north':
+            lst_new_pts = dividePoints(coords_lst, coords_lst_all, lst)
+            lst_new_pts = reEditNewPts(lst, lst_new_pts)
+            lst_new_pts = sorted(lst_new_pts, key=lambda x: x[6])
+            for i in range(len(lst_new_pts)):
+                lst_new_pts[i][-1] = north_data[i]
+        if lst[0][-1].lower() == 'south':
+            lst_new_pts = dividePoints(coords_lst, coords_lst_all, lst)
+            lst_new_pts = reEditNewPts(lst, lst_new_pts)
+            lst_new_pts = sorted(lst_new_pts, key=lambda x: x[6])
+            for i in range(len(lst_new_pts)):
+                lst_new_pts[i][-1] = south_data[i]
+            lst_new_pts = lst_new_pts[::-1]
+        return lst_new_pts
+    else:
+        if lst[0][-1].lower() == 'west':
+            lst_new_pts = sorted(lst, key=lambda x: x[7])
+            for i in range(len(lst_new_pts)):
+                lst_new_pts[i][-1] = west_data[i]
+        if lst[0][-1].lower() == 'east':
+            lst_new_pts = sorted(lst, key=lambda x: x[7])
+            for i in range(len(lst)):
+                lst_new_pts[i][-1] = east_data[i]
+            lst_new_pts = lst_new_pts[::-1]
+        if lst[0][-1].lower() == 'north':
+            lst_new_pts = sorted(lst, key=lambda x: x[6])
+            for i in range(len(lst_new_pts)):
+                lst_new_pts[i][-1] = north_data[i]
+            # coords_lst = [[i[6], i[7]] for i in lst_new_pts]
+            # fig, ax1 = plt.subplots()
+            #
+            # x3, y3 = [i[0] for i in coords_lst], [i[1] for i in coords_lst]
+            # x2, y2 = [i[0] for i in coords_lst_all], [i[1] for i in coords_lst_all]
+            # for i in range(len(x3)):
+            #     ax1.text(x3[i], y3[i], lst_new_pts[i][-1])
+            # ax1.plot(x2, y2, c='red')
+            # ax1.scatter(x3, y3, c='black')
+            # plt.show()
+        if lst[0][-1].lower() == 'south':
+            lst_new_pts = sorted(lst, key=lambda x: x[6])
+            for i in range(len(lst_new_pts)):
+                lst_new_pts[i][-1] = south_data[i]
+            lst_new_pts = lst_new_pts[::-1]
+        return lst_new_pts
+    return lst
+def reEditNewPts(original_lst, new_lst):
+    data_line = original_lst[0]
+    new_data = []
+    for i in new_lst:
+        new_data.append(data_line[:6] + i[0] + data_line[8:])
+    return new_data
 
 def correctPlatDataForTooFewPoints(lst):
-    print()
     coords_lst = [[i[6], i[7]] for i in lst]
     div_lst = [coords_lst[0], coords_lst[-1]]
     other_coords = [i for i in coords_lst if i not in div_lst]
-    if len(other_coords) != 2:
-        print(ma.printLine(lst))
+
     base_pts = []
 
 
@@ -229,8 +287,7 @@ def correctPlatDataForTooFewPoints(lst):
 
 
 
-    for xy1, xy2 in zip(coords_lst, coords_lst[1:]):
-        print(ma.findSegmentLength(xy1, xy2))
+
         # new_points_1.append(xy1)
         # for i in range(1, 100):
         #     div = i / 100
@@ -239,7 +296,7 @@ def correctPlatDataForTooFewPoints(lst):
     # for i in data_all:
     #     for j in other_coords:
     #         data = ma.findSegmentLength(i, j)
-            # print(i,j,data)
+
 
 def groupAndAssembleData(lst):
     lst_grouped = ma.groupByLikeValues(copy.deepcopy(lst), -2)
@@ -262,29 +319,25 @@ def clockwiseOrganizer(lst):
             if i[0] == j[6] and i[1] == j[7]:
                 matched_lst.append(j)
 
-    for i in range(len(organize)):
-        print(organize[i], matched_lst[i], lst[i])
-    # print(lst[-1])
     if 'agrc' not in lst[-1][-1].lower():
-        fig, ax1 = plt.subplots()
-        x1, y1 = [i[6] for i in matched_lst], [i[7] for i in matched_lst]
-        x2, y2 = [i[6] for i in lst], [i[7] for i in lst]
-        ax1.plot(x2, y2, c='red')
-        # ax1.plot(x1, y1, c='black')
-        plt.show()
+        pass
+        # fig, ax1 = plt.subplots()
+        # x1, y1 = [i[6] for i in matched_lst], [i[7] for i in matched_lst]
+        # x2, y2 = [i[6] for i in lst], [i[7] for i in lst]
+        # ax1.plot(x2, y2, c='red')
+        # # ax1.plot(x1, y1, c='black')
+        # plt.show()
 
 
 def coordsChecker(lst):
     tot_runner = 0
     new_sides = []
     for i in lst:
-        # print(i)
         tot_runner += len(i)
         data_set = [r[6:8] for r in i]
         tsr_data = i[0][:6]
         data_x, data_y = [r[0] for r in data_set], [r[1] for r in data_set]
         if max(data_x) - min(data_x) < 10000 and max(data_y) - min(data_y) < 10000 and len(data_set) > 10:
-            # ma.printLine(data_set)
             data_output = EditAGRCData.findCorners(data_set)
             for j in range(len(data_output)):
                 data_output[j] = tsr_data + data_output[j]
@@ -295,7 +348,6 @@ def coordsChecker2(lst):
     tot_runner = 0
     new_sides = []
     for i in lst:
-        # print(i)
         tot_runner += len(i)
         data_set = [r[6:8] for r in i]
         tsr_data = i[0][:6]
@@ -352,18 +404,14 @@ def assembleDataCardinalDirections(lst):
     south_side = EditAGRCData.arrangeDirectionData(corners, data_lengths, 'south')
     all_data = west_side + north_side + east_side + south_side
     # if len(east_side) == 5:
-    #     print('five')
-    # print(east_side)
-    # print(west_side)
+
     # if len(east_side) < 5:
-    #     print("\n\nEastSide\n_____________")
     #     east_side = [list(t) for t in set(tuple(element) for element in east_side)]
     #     east_side = [[i[0], i[1]] for i in east_side]
     #     east_side = arranger(east_side, 'east')
     #     east_side = dividePoints(east_side, all_data)
     #     # east_side = arranger(east_side, 'east')
     # if len(north_side) < 5:
-    #     print("\n\nNorthSide\n_____________")
     #
     #     north_side = [list(t) for t in set(tuple(element) for element in north_side)]
     #     north_side = [[i[0], i[1]] for i in north_side]
@@ -371,14 +419,12 @@ def assembleDataCardinalDirections(lst):
     #     north_side = dividePoints(north_side, all_data)
     #     # north_side = arranger(north_side, 'north')
     # if len(west_side) < 5:
-    #     print("\n\nWestSide\n_____________")
     #     west_side = [list(t) for t in set(tuple(element) for element in west_side)]
     #     west_side = [[i[0], i[1]] for i in west_side]
     #     west_side = arranger(west_side, 'west')
     #     west_side = dividePoints(west_side, all_data)
     #     # west_side = arranger(west_side, 'west')
     # if len(south_side) < 5:
-    #     print("\n\nSouthSide\n_____________")
     #     south_side = [list(t) for t in set(tuple(element) for element in south_side)]
     #     south_side = [[i[0], i[1]] for i in south_side]
     #     south_side = arranger(south_side, 'south')
@@ -386,14 +432,7 @@ def assembleDataCardinalDirections(lst):
     #     south_side = dividePoints(south_side, all_data)
 
         # south_side = arranger(south_side, 'south')
-    if len(south_side) < 5:
-        print('length')
-    if len(west_side) < 5:
-        print('length')
-    if len(north_side) < 5:
-        print('length')
-    if len(east_side) < 5:
-        print('length')
+
     all_data = west_side + north_side + east_side + south_side
 
 def arranger(lst, label):
@@ -480,53 +519,103 @@ def dividePoints(side, all_data, o_lst):
                     all_pts[2+j] = [findPointsOnLine(pt1, pt2, div), "P"]
 
                 all_pts[0], all_pts[1], all_pts[4] = [side[0], "T"], [side[1], "T"], [side[3], "T"]
+
                 return all_pts
             else:
-                print("error position")
-                ma.printLine(o_lst)
-                fig, ax1 = plt.subplots()
+                all_pts = fourPtLineChanger(side_data)
 
-                # test_data = [i for i in all_pts if i]
-                x3, y3 = [i[0] for i in side_data], [i[1] for i in side_data]
-                x2, y2 = [i[0] for i in all_data], [i[1] for i in all_data]
-                for i in range(len(x3)):
-                    ax1.text(x3[i], y3[i], str(i))
-                ax1.plot(x2, y2, c='red')
-                ax1.scatter(x3, y3, c='black')
-                plt.show()
-                return [[0]]
+                # fig, ax1 = plt.subplots()
+                #
+                # # test_data = [i for i in all_pts if i]
+                # x3, y3 = [i[0] for i in side_data], [i[1] for i in side_data]
+                # x2, y2 = [i[0] for i in all_data], [i[1] for i in all_data]
+                # for i in range(len(x3)):
+                #     ax1.text(x3[i], y3[i], str(i))
+                # ax1.plot(x2, y2, c='red')
+                # ax1.scatter(x3, y3, c='black')
+                # plt.show()
+                return all_pts
+
+                # fig, ax1 = plt.subplots()
+                #
+                # # test_data = [i for i in all_pts if i]
+                # x3, y3 = [i[0] for i in side_data], [i[1] for i in side_data]
+                # x2, y2 = [i[0] for i in all_data], [i[1] for i in all_data]
+                # for i in range(len(x3)):
+                #     ax1.text(x3[i], y3[i], str(i))
+                # ax1.plot(x2, y2, c='red')
+                # ax1.scatter(x3, y3, c='black')
+                # plt.show()
+                # return [[0]]
         except ValueError:
-            print("error input")
-            ma.printLine(o_lst)
-            fig, ax1 = plt.subplots()
+            all_pts = fourPtLineChanger(side_data)
 
-            # test_data = [i for i in all_pts if i]
-            x3, y3 = [i[0] for i in side_data], [i[1] for i in side_data]
-            x2, y2 = [i[0] for i in all_data], [i[1] for i in all_data]
-            for i in range(len(x3)):
-                ax1.text(x3[i], y3[i], str(i))
-            ax1.plot(x2, y2, c='red')
-            ax1.scatter(x3, y3, c='black')
-            plt.show()
-            return [[0]]
+            # fig, ax1 = plt.subplots()
+            #
+            # # test_data = [i for i in all_pts if i]
+            # x3, y3 = [i[0] for i in side_data], [i[1] for i in side_data]
+            # x2, y2 = [i[0] for i in all_data], [i[1] for i in all_data]
+            # for i in range(len(x3)):
+            #     ax1.text(x3[i], y3[i], str(i))
+            # ax1.plot(x2, y2, c='red')
+            # ax1.scatter(x3, y3, c='black')
+            # plt.show()
+            return all_pts
 
         # else:
 
     # elif len(side) == 4:
-    #     print(4)
     # if len(side) == 3:
     #     for i in range(len(side)-1):
     #         for j in range():
     #             div = j / 3
     #             new_point = findPointsOnLine(side[i], side[i+1], div)
-    #             print(new_point)
     # if len(side) == 2:
     #     for i in range(len(side)-1):
     #         for j in range(2):
     #             div = j / 2
     #             new_point = findPointsOnLine(side[i], side[i+1], div)
-    #             print(new_point)
 
+
+
+def fourPtLineChanger(lst):
+    new_pts = []
+
+    # coords_lst = [[i[6], i[7]] for i in lst]
+    # div_lst = [lst[0], lst[-1]]
+    # other_coords = [i for i in lst if i not in div_lst]
+    new_pts.append([lst[0], "T"])
+    for xy1, xy2 in zip(lst, lst[1:]):
+        new_pts.append([findPointsOnLine(xy1, xy2, 1/2), "P"])
+    new_pts.append([lst[-1], "T"])
+    return new_pts
+    # fig, ax1 = plt.subplots()
+    #
+    # # test_data = [i for i in all_pts if i]
+    # x1, y1 = [i[0] for i in lst], [i[1] for i in lst]
+    # x2, y2 = [i[0] for i in new_pts], [i[1] for i in new_pts]
+    # ax1.scatter(x2, y2, c='red')
+    # ax1.scatter(x1, y1, c='black')
+    # plt.show()
+
+
+
+
+    # base_pts = []
+    #
+    #
+    # for i in range(1, 4):
+    #     div = i / 4
+    #     base_pts.append(findPointsOnLine(lst[0], lst[1], div))
+
+    # data_all = [div_lst[0]] + base_pts + [div_lst[1]]
+    #
+    # if len(other_coords) == 0:
+    #     return data_all
+    #
+    #
+    #
+    #
 
 
 def findPointsOnLine(xy1, xy2, div):
@@ -824,6 +913,6 @@ def lineSegmentCalculator(xy1, xy2, direct, cardinal_dir):
     return data_out
 
 #
-main()
+# main()
 # main2()
-# turnIntoDB()
+turnIntoDB()
