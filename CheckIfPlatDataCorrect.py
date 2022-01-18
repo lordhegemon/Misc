@@ -241,7 +241,6 @@ def compareGISDataToParsed(df):
     df_parsed = pd.read_csv("AllGrids.csv", encoding="ISO-8859-1")
     df_parsed = df_parsed.to_numpy().tolist()
     high_prob_lst, mid_prob_lst = [], []
-    # df_parsed = ma.oneToMany(df_parsed, )
     for i in range(len(df_parsed)):
         df_parsed[i][:6], df_parsed[i][-1] = [int(j) for j in df_parsed[i][:6]], str(int(df_parsed[i][-1]))
     d = [[df_parsed[0]]]
@@ -250,11 +249,11 @@ def compareGISDataToParsed(df):
             d.append([])
         d[-1].append(df_parsed[i])
     df_parsed = d
-
+    noted_data = []
+    locker = False
     for i in range(len(df_parsed)):
         df_parsed_coords = [j[6:8] for j in df_parsed[i]]
         df_parsed[i][0][0], df_parsed[i][0][1], df_parsed[i][0][3] = int(df_parsed[i][0][0]), int(df_parsed[i][0][1]), int(df_parsed[i][0][3])
-        # many_pts_conc = int(float(str(df_parsed[i][0]) + str(df_parsed[i][1]) + str(df_parsed[i][2]) + str(df_parsed[i][3]) + str(df_parsed[i][4]) + str(df_parsed[i][5])))
         sql_string_indexes = [int(df_parsed[i][0][0]), int(df_parsed[i][0][1]), int(df_parsed[i][0][2]), int(df_parsed[i][0][3]), int(df_parsed[i][0][4]), int(df_parsed[i][0][5])]
         sql_string_indexes = copy.deepcopy(sql_string_indexes)
         df_parsed[i][0][2] = translateNumberToDirection('township', str(int(df_parsed[i][0][2])))
@@ -269,25 +268,49 @@ def compareGISDataToParsed(df):
         if len_lst[3] == 1:
             df_parsed[i][0][3] = "0" + str(df_parsed[i][0][3])
         sql_conc_str = str(df_parsed[i][0][0]) + str(df_parsed[i][0][1]) + str(df_parsed[i][0][2]) + str(df_parsed[i][0][3]) + str(df_parsed[i][0][4]) + str(df_parsed[i][0][5])
-        # sql_string_indexes = [str(df_parsed[i][0][0]), str(df_parsed[i][0][1]), str(df_parsed[i][0][2]), str(df_parsed[i][0][3]), str(df_parsed[i][0][4]), str(df_parsed[i][0][5])]
         df_tester = df[df['new_code'] == sql_conc_str][['Easting', 'Northing']].to_numpy().tolist()
         # print("\n______________________________________________________________\n", sql_conc_str)
-        high_prob, mid_prob = compareDirect(df_tester, df_parsed_coords)
-        if high_prob:
-            high_prob = [sql_string_indexes + r for r in high_prob]
-            high_prob_lst.append(high_prob)
-        if mid_prob:
-            mid_prob = [sql_string_indexes + r for r in mid_prob]
-            mid_prob_lst.append(mid_prob)
+        if sql_conc_str == '2303S02WU':
+            noted_data.append(df_parsed_coords)
+            if not locker:
+                noted_data.append(df_tester)
+                locker = True
+            # noted_data.append(df_tester)
+
+        try:
+            high_prob, mid_prob = compareDirect(df_tester, df_parsed_coords)
+            if high_prob:
+                high_prob = [sql_string_indexes + r for r in high_prob]
+                print(high_prob)
+                high_prob_lst.append(high_prob)
+            if mid_prob:
+                mid_prob = [sql_string_indexes + r for r in mid_prob]
+                mid_prob_lst.append(mid_prob)
+        except IndexError:
+            pass
     high_prob_lst = [i for i in high_prob_lst if i]
     mid_prob_lst = [i for i in mid_prob_lst if i]
+    fig, ax1 = plt.subplots()
+    #
+    # ax1.plot(x3, y3, c="#E69F00")
+    # ax1.plot(x4, y4, c='#0072B2')
+    # ax1.fill(x1, y1, c='#B42F32', alpha = .8)
+    # plt.show()
+    color = ['red', 'blue', 'red', 'blue']
+
+    for i in range(len(noted_data)):
+        x1, y1 = [j[0] for j in noted_data[i]], [j[1] for j in noted_data[i]]
+        print(len(noted_data[i]))
+        ax1.plot(x1, y1, c=color[i])
+    plt.show()
     pd.set_option('display.max_columns', None)
 
 
 def compareDirect(lst1, lst2):
+    # print('direct compare')
     high_prob = []
     mid_prob = []
-    output = EditAGRCData.findCorners(lst1)
+    # output = EditAGRCData.findCorners(lst1)
 
     lst1 = ProcessCoordData.getPlatBounds(lst1)[1:]
     lst1 = list(chain.from_iterable(lst1))
@@ -389,7 +412,6 @@ def drawData():
     len_lst = []
     sql_lst, sql_conc = parseDatabaseForDataWithSectionsAndSHL(cursor)
     df = pd.read_csv("LatLonEdited.csv", encoding="ISO-8859-1")
-    # print(df)
     # df = pd.read_csv("LatLonEdited.csv", encoding="ISO-8859-1")
     compareGISDataToParsed(df)
     pd.set_option('display.max_columns', None)

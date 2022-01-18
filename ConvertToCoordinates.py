@@ -95,10 +95,11 @@ def main():
     new_sides = alterAGRCData(new_sides)
 
 
-    print("\n\n\n\n___________________________________________________________________________\nGO")
+    print("\n\n\n\n___________________________________________________________________________\nGO input data")
     added_data = []
     # df_parsed = pd.read_csv("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\PlatGridNumbers.csv", encoding="ISO-8859-1")
     df_parsed = pd.read_csv("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\PlatAllSidesFour.csv", encoding="ISO-8859-1")
+
     data_test = df_parsed.to_numpy().tolist()
     conn, cursor = sqlConnect()
     sql_lst, sql_conc = parseDatabaseForDataWithSectionsAndSHL(cursor)
@@ -107,10 +108,12 @@ def main():
     pd.set_option('display.max_columns', None)
     conc_codes_all = []
     version_number = 1
+    # '23S03S02WU'
     for i in output:
-
         lst = FindSurfaceLocationsAndPlats.transformData2(i)
-        if lst != []:
+
+
+        if lst:
             data = lst[0]
             conc_code_merged, conc_code = reTranslateData(data[0])
             if conc_code_merged not in conc_codes_all:
@@ -121,21 +124,22 @@ def main():
             counter = 0
             for j in data:
                 counter +=1
-                latlon = list(utm.to_latlon(j[-3], j[-2], 12, 'T'))
-                # data_created = j[:-1] + latlon + [conc_code_merged] + ["V.1"]
                 data_created = j[:-1] + [conc_code_merged] + ["V.1"]
                 data_created[6] = float(data_created[6])
                 data_created[7] = float(data_created[7])
                 added_data.append(data_created)
 
     added_data = ma.groupByLikeValues(added_data, -2)
-
     added_data = coordsChecker(added_data)
     added_data = ma.removeDupesListOfLists(added_data)
     added_data = alterAGRCData2(added_data)
     odd_data = []
 
     added_data = new_sides + added_data
+
+
+
+
 
 
     for i in range(len(added_data)):
@@ -148,18 +152,15 @@ def main():
             added_data[i] = []
     added_data = [i for i in added_data if i]
     all_data_aligned = checkForCardinalAlignment(added_data)
+
+
     for i in range(len(odd_data)):
         odd_data[i][-1] = 'odd'
     all_data_aligned = all_data_aligned + odd_data
-    # df_test = [{'Section': i[0], 'Township': int(float(i[1])), 'Township Direction': i[2], 'Range': int(float(i[3])),
-    #             'Range Direction': i[4], 'Baseline': i[5], 'Easting': float(i[6]), 'Northing': float(i[7]), 'Latitude': float(i[8]), "Longitude": float(i[9]), 'Conc': i[10], 'Version': i[11]} for i in added_data]
-    # df = pd.DataFrame(df_test, columns=['Section', 'Township', 'Township Direction', 'Range', 'Range Direction', 'Baseline', 'Easting', 'Northing', "Latitude", "Longitude", 'Conc', 'Version'])
-    print(all_data_aligned[0])
     df_test = [{'Section': i[0], 'Township': int(float(i[1])), 'Township Direction': i[2], 'Range': int(float(i[3])),
                 'Range Direction': i[4], 'Baseline': i[5], 'Easting': float(i[6]), 'Northing': float(i[7]), 'Alignment': i[10], 'new_code': i[8], 'Version': i[9]} for i in all_data_aligned]
     df = pd.DataFrame(df_test, columns=['Section', 'Township', 'Township Direction', 'Range', 'Range Direction', 'Baseline', 'Easting', 'Northing', 'Alignment', 'new_code', 'Version'])
-    print(df)
-    df.to_csv('GridDataLatLonUTMAligned.csv', index=False)
+    # df.to_csv('GridDataLatLonUTMAligned.csv', index=False)
 
 def alterAGRCData(lst):
 
@@ -913,6 +914,6 @@ def lineSegmentCalculator(xy1, xy2, direct, cardinal_dir):
     return data_out
 
 #
-# main()
+main()
 # main2()
-turnIntoDB()
+# turnIntoDB()

@@ -228,7 +228,8 @@ def findDataInExistingExcelWithCorrectClosure(folder):
         #         counter += 1
         # else:
         #     for j in i:
-        good_data.append(j)
+        for j in i:
+            good_data.append(j)
     return good_data, df_all
 
 

@@ -208,6 +208,7 @@ def rewriteCode(lst):
 
 
 def findRelevantPoints(df, shl, code_lst, offset_lst):
+    print('relelvant data')
     sections_all, all_points, pts_all, test_combo_section, test_id, test_all = [], [], [], [], [], []
     all_points, sections_all, test_combo_section = findRelevantPointsGetComboLists(df, code_lst, offset_lst)
     test_lst = []
@@ -262,7 +263,9 @@ def getPlatBounds(data_set):
     # print('data', data_setX)
     x_output, y_output = dict(enumerate(ModuleAgnostic.grouper(sorted(data_setX), 300), 1)), dict(enumerate(ModuleAgnostic.grouper(sorted(data_setY), 300), 1))
     x_output, y_output = [j for i, j in x_output.items()], [j for i, j in y_output.items()]
-
+    # ModuleAgnostic.printLine(data_set)
+    # print(x_output)
+    # print(y_output)
     xBounds, yBounds = boundaryFinder(x_output, y_output, data_set)
     south_bounds, north_bounds, west_bounds, east_bounds = yBounds[0], yBounds[1], xBounds[0], xBounds[1]
     south_bounds = sorted(boundsParser(south_bounds, 0, 'S'), key=lambda x: x[0])
