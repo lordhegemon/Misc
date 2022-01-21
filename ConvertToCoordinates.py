@@ -17,7 +17,9 @@ import EditAGRCData
 def turnIntoDB():
     conn = sqlite3.connect("C:\\Work\\RewriteAPD\\APD_Data.db")
     # df_parsed_utm_latlon = pd.read_excel("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\UTM\\LatLonUTM.xlsx", dtype='object')
-    df_parsed_utm_latlon = pd.read_excel("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\UTM\\GridDataLatLonUTMAligned.xlsx", dtype='object')
+    # df_parsed_utm_latlon = pd.read_excel("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\UTM\\GridDataLatLonUTMAligned.xlsx", dtype='object')
+    df_parsed_utm_latlon = pd.read_excel("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\UTM\\FinalGridData.xlsx", dtype='object')
+    print(df_parsed_utm_latlon)
     df_parsed_utm_latlon.to_sql("SectionDataCoordinates", conn, if_exists='replace')
 
     df_parsed_utm_latlon = pd.read_csv("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\UTM\\CasingStrengths.csv", dtype='object')
@@ -90,7 +92,6 @@ def main():
         df_read_test[i].append(conc_out)
     df_read_lst = ma.groupByLikeValues(df_read_test, -1)
     new_sides = coordsChecker(df_read_lst)
-    # new_sides = [i[:-1] for i in new_sides]
     new_sides = ma.removeDupesListOfLists(new_sides)
     new_sides = alterAGRCData(new_sides)
 
@@ -133,35 +134,50 @@ def main():
     added_data = coordsChecker(added_data)
     added_data = ma.removeDupesListOfLists(added_data)
     added_data = alterAGRCData2(added_data)
+
+    df_new = pd.read_csv("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\NewGridDataManualInput.csv", encoding="ISO-8859-1")
+    manual_data = df_new.to_numpy().tolist()
+
     odd_data = []
 
-    added_data = new_sides + added_data
-
-
-
-
-
+    # ma.printLine(new_sides)
+    # for i in range(len(new_sides)):
+    #     print(new_sides[i])
+    print(len(added_data))
+    print(len(new_sides))
+    added_data = new_sides + manual_data
+    ma.printLine(added_data)
 
     for i in range(len(added_data)):
         if added_data[i][8] in bad_lst:
             added_data[i] = []
     added_data = [i for i in added_data if i]
+
     for i in range(len(added_data)):
         if added_data[i][8] in strange_data:
             odd_data.append(added_data[i])
             added_data[i] = []
     added_data = [i for i in added_data if i]
-    all_data_aligned = checkForCardinalAlignment(added_data)
+
+    # all_data_aligned = checkForCardinalAlignment(added_data)
 
 
-    for i in range(len(odd_data)):
-        odd_data[i][-1] = 'odd'
-    all_data_aligned = all_data_aligned + odd_data
+    # for i in range(len(odd_data)):
+    #     odd_data[i][-1] = 'odd'
+    # all_data_aligned = all_data_aligned + odd_data
+    # ma.printLine(all_data_aligned)
+
+
+
+
+    # df_test = [{'Section': i[0], 'Township': int(float(i[1])), 'Township Direction': i[2], 'Range': int(float(i[3])),
+    #             'Range Direction': i[4], 'Baseline': i[5], 'Easting': float(i[6]), 'Northing': float(i[7]), 'Alignment': i[10], 'new_code': i[8], 'Version': i[9]} for i in all_data_aligned]
     df_test = [{'Section': i[0], 'Township': int(float(i[1])), 'Township Direction': i[2], 'Range': int(float(i[3])),
-                'Range Direction': i[4], 'Baseline': i[5], 'Easting': float(i[6]), 'Northing': float(i[7]), 'Alignment': i[10], 'new_code': i[8], 'Version': i[9]} for i in all_data_aligned]
-    df = pd.DataFrame(df_test, columns=['Section', 'Township', 'Township Direction', 'Range', 'Range Direction', 'Baseline', 'Easting', 'Northing', 'Alignment', 'new_code', 'Version'])
-    # df.to_csv('GridDataLatLonUTMAligned.csv', index=False)
-
+                            'Range Direction': i[4], 'Baseline': i[5], 'Easting': float(i[6]), 'Northing': float(i[7]), 'new_code': i[8], 'Version': i[9]} for i in added_data]
+    df = pd.DataFrame(df_test, columns=['Section', 'Township', 'Township Direction', 'Range', 'Range Direction', 'Baseline', 'Easting', 'Northing', 'new_code', 'Version'])
+    print(df)
+    df.to_csv('FinalGridData.csv', index=False)
+# 138696 	 [15, 5, 2, 2, 1, 2, 606994.0794, 4434418.276, '1505S02EU', 'AGRC V.1', 'odd']
 def alterAGRCData(lst):
 
     for i in range(len(lst)):
@@ -493,9 +509,7 @@ def dividePoints(side, all_data, o_lst):
                 for j in range(3):
                     div = j / 3
                     all_pts[j] = [findPointsOnLine(side[0][:2], side[1][:2], div), "P"]
-                # test_data = [i for i in all_pts if i]
                 all_pts[0], all_pts[3], all_pts[4] = [side[0][:2], "T"], [side[1][:2], "T"], [side[2][:2], "T"]
-                # used_pts = [side[0][:2]] + [side[1][:2]]
                 return all_pts
 
     elif len(side) == 4:
@@ -562,21 +576,6 @@ def dividePoints(side, all_data, o_lst):
             # ax1.scatter(x3, y3, c='black')
             # plt.show()
             return all_pts
-
-        # else:
-
-    # elif len(side) == 4:
-    # if len(side) == 3:
-    #     for i in range(len(side)-1):
-    #         for j in range():
-    #             div = j / 3
-    #             new_point = findPointsOnLine(side[i], side[i+1], div)
-    # if len(side) == 2:
-    #     for i in range(len(side)-1):
-    #         for j in range(2):
-    #             div = j / 2
-    #             new_point = findPointsOnLine(side[i], side[i+1], div)
-
 
 
 def fourPtLineChanger(lst):
@@ -914,6 +913,6 @@ def lineSegmentCalculator(xy1, xy2, direct, cardinal_dir):
     return data_out
 
 #
-main()
+# main()
 # main2()
-# turnIntoDB()
+turnIntoDB()

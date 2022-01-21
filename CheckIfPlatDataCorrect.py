@@ -238,8 +238,12 @@ def rewriteDataLatLon(lst):
 #     plt.show()
 
 def compareGISDataToParsed(df):
+    high_prob_id = []
+    mid_prob_id = []
+    pd.set_option('display.max_columns', None)
     df_parsed = pd.read_csv("AllGrids.csv", encoding="ISO-8859-1")
     df_parsed = df_parsed.to_numpy().tolist()
+    print("length", len(df_parsed))
     high_prob_lst, mid_prob_lst = [], []
     for i in range(len(df_parsed)):
         df_parsed[i][:6], df_parsed[i][-1] = [int(j) for j in df_parsed[i][:6]], str(int(df_parsed[i][-1]))
@@ -250,7 +254,9 @@ def compareGISDataToParsed(df):
         d[-1].append(df_parsed[i])
     df_parsed = d
     noted_data = []
+    new_data = []
     locker = False
+    final_data = []
     for i in range(len(df_parsed)):
         df_parsed_coords = [j[6:8] for j in df_parsed[i]]
         df_parsed[i][0][0], df_parsed[i][0][1], df_parsed[i][0][3] = int(df_parsed[i][0][0]), int(df_parsed[i][0][1]), int(df_parsed[i][0][3])
@@ -269,27 +275,66 @@ def compareGISDataToParsed(df):
             df_parsed[i][0][3] = "0" + str(df_parsed[i][0][3])
         sql_conc_str = str(df_parsed[i][0][0]) + str(df_parsed[i][0][1]) + str(df_parsed[i][0][2]) + str(df_parsed[i][0][3]) + str(df_parsed[i][0][4]) + str(df_parsed[i][0][5])
         df_tester = df[df['new_code'] == sql_conc_str][['Easting', 'Northing']].to_numpy().tolist()
+        # print(df_parsed[i])
         # print("\n______________________________________________________________\n", sql_conc_str)
         if sql_conc_str == '2303S02WU':
             noted_data.append(df_parsed_coords)
             if not locker:
                 noted_data.append(df_tester)
                 locker = True
-            # noted_data.append(df_tester)
 
         try:
             high_prob, mid_prob = compareDirect(df_tester, df_parsed_coords)
             if high_prob:
+                id_data = str(int(float(df_parsed[i][0][8])))
+                id_data = id_data[:10]
+                # print(df_parsed[i][0][8])
                 high_prob = [sql_string_indexes + r for r in high_prob]
-                print(high_prob)
                 high_prob_lst.append(high_prob)
+                high_prob_id.append(id_data)
             if mid_prob:
                 mid_prob = [sql_string_indexes + r for r in mid_prob]
                 mid_prob_lst.append(mid_prob)
+
+                mid_prob_id.append(id_data)
         except IndexError:
             pass
     high_prob_lst = [i for i in high_prob_lst if i]
     mid_prob_lst = [i for i in mid_prob_lst if i]
+    all_data = high_prob_lst + mid_prob_lst
+    # ma.printLine(mid_prob_id)
+    all_ids = high_prob_id + mid_prob_id
+    # print(len(all_data), len(all_ids))
+    counter = 0
+    for i in all_data:
+        # ma.printLine(i)
+        edit_line = copy.deepcopy(i)
+        data_line = [str(r) for r in edit_line[0][:6]]
+        len_lst = [len(r) for r in data_line]
+        # print(i[0], data_line, len_lst)
+        conc_val = data_line
+        if len_lst[0] == 1:
+            conc_val[0] = "0" + data_line[0]
+        if len_lst[1] == 1:
+            conc_val[1] = "0" + data_line[1]
+        if len_lst[3] == 1:
+            conc_val[3] = "0" + data_line[3]
+        conc_val[2] = translateNumberToDirection('township', conc_val[2])
+        conc_val[4] = translateNumberToDirection('rng', conc_val[4])
+        conc_val[5] = translateNumberToDirection('baseline', conc_val[5])
+        conc_val = "".join(conc_val)
+        new_data.append(conc_val)
+        counter_unique = new_data.count(conc_val)
+        version_data = "V." + str(counter_unique) + " - " + str(int(all_ids[counter]))
+        # print("V." + str(counter_unique) + " - " + str(int(all_ids[counter])))
+        for r in range(len(edit_line)):
+            edit_line[r].append(conc_val)
+            edit_line[r].append(version_data)
+        # print(counter)
+        # ma.printLine(edit_line)
+        counter +=1
+        final_data.append(edit_line)
+
     fig, ax1 = plt.subplots()
     #
     # ax1.plot(x3, y3, c="#E69F00")
@@ -298,16 +343,19 @@ def compareGISDataToParsed(df):
     # plt.show()
     color = ['red', 'blue', 'red', 'blue']
 
-    for i in range(len(noted_data)):
-        x1, y1 = [j[0] for j in noted_data[i]], [j[1] for j in noted_data[i]]
-        print(len(noted_data[i]))
-        ax1.plot(x1, y1, c=color[i])
-    plt.show()
-    pd.set_option('display.max_columns', None)
-
+    # for i in range(len(noted_data)):
+    #     x1, y1 = [j[0] for j in noted_data[i]], [j[1] for j in noted_data[i]]
+    #     print(len(noted_data[i]))
+    #     ax1.plot(x1, y1, c=color[i])
+    # plt.show()
+    final_data = list(chain.from_iterable(final_data))
+    # ma.printLine(final_data)
+    df_test = [{'Section': i[0], 'Township': int(float(i[1])), 'Township Direction': i[2], 'Range': int(float(i[3])),
+                'Range Direction': i[4], 'Baseline': i[5], 'Easting': float(i[6]), 'Northing': float(i[7]), 'new_code': i[8], 'Version': i[9]} for i in final_data]
+    df = pd.DataFrame(df_test, columns=['Section', 'Township', 'Township Direction', 'Range', 'Range Direction', 'Baseline', 'Easting', 'Northing', 'Alignment', 'new_code', 'Version'])
+    df.to_csv('NewGridDataManualInput.csv', index=False)
 
 def compareDirect(lst1, lst2):
-    # print('direct compare')
     high_prob = []
     mid_prob = []
     # output = EditAGRCData.findCorners(lst1)

@@ -493,7 +493,6 @@ def transformData2(lst):
     shl_coords = []
 
     for i in lst:
-        # ma.printLine(i)
         coord_data_lst.append([])
         coord_data_lst_grid.append([])
         all_data = []
