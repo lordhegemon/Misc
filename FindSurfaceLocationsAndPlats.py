@@ -484,8 +484,6 @@ def transformData2(lst):
                ['East-Up2', 'East-Up1', 'East-Down1', 'East-Down2'],
                ['North-Left2', 'North-Left1', 'North-Right1', 'North-Right2'],
                ['South-Left2', 'South-Left1', 'South-Right1', 'South-Right2']]
-    good_data = []
-
     lst = ma.oneToMany(lst, 16)
 
     coord_data_lst = []
@@ -497,7 +495,6 @@ def transformData2(lst):
         coord_data_lst_grid.append([])
         all_data = []
         data_converted = sideDataToDecimalAzimuth(dir_lst, i)
-        # data_converted =  convertToDecimal(i)
         dir_lst_flatten = ma.manyToOne(dir_lst)
         try:
             coordLst = getCoordsLst(data_converted, [0.0, 0.0])
@@ -530,30 +527,6 @@ def transformData2(lst):
     coord_data_lst = [i for i in coord_data_lst if i]
     coord_data_lst_grid = [i for i in coord_data_lst_grid if i]
     all_data = coord_data_lst + coord_data_lst_grid
-    # for i in range(len(coord_data_lst)):
-    #     start, end = coord_data_lst[i][0][6:8], coord_data_lst[i][-1][6:8]
-    #     closure_x, closure_y = round(end[0] - start[0], 4), round(end[1] - start[1], 4)
-    #     if abs(closure_x) > 1 or abs(closure_y) > 1:
-    #         coord_data_lst[i][-1] = coord_data_lst[i][0]
-    # for i in range(len(coord_data_lst_grid)):
-    #     start, end = coord_data_lst_grid[i][0][6:8], coord_data_lst_grid[i][-1][6:8]
-    #     closure_x, closure_y = round(end[0] - start[0], 4), round(end[1] - start[1], 4)
-    #     if abs(closure_x) > 1 or abs(closure_y) > 1:
-    #         coord_data_lst_grid[i][-1] = coord_data_lst_grid[i][0]
-    # zp = ZoomPan()
-    # fig, ax = plt.subplots()
-    # figZoom, figPan = zp.zoom_factory(ax, base_scale=1.1), zp.pan_factory(ax)
-
-    # shl_coords = [list(t) for t in set(tuple(element) for element in shl_coords)]
-    # all_x = [j[0] for j in shl_coords]
-    # all_y = [j[1] for j in shl_coords]
-    # all_text = [j[2] for j in shl_coords]
-    #
-    # # ax.scatter([surfaceCoord[0]], [surfaceCoord[1]], c='black')
-    # coordLst_unmerged = list(itertools.chain.from_iterable(coord_data_lst))
-    # coord_data_lst_grid_unmerged = list(itertools.chain.from_iterable(coord_data_lst_grid))
-    # all_unmerged = list(itertools.chain.from_iterable(all_data))
-    # # saveCoordData(all_unmerged)
     return all_data
 
 def convertToDecimal(data):

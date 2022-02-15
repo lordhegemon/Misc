@@ -105,6 +105,7 @@ def main():
     conn, cursor = sqlConnect()
     sql_lst, sql_conc = parseDatabaseForDataWithSectionsAndSHL(cursor)
     output = FindSurfaceLocationsAndPlats.matcherDF1(df_parsed, sql_lst)
+    ma.printLine(output)
 
     pd.set_option('display.max_columns', None)
     conc_codes_all = []
@@ -638,7 +639,7 @@ def reTranslateData(i):
     if len_lst[3] == 1:
         conc_code[3] = "0" + str(conc_code[3])
     conc_code = "".join([str(q) for q in conc_code])
-    # return tsr_data, conc_code, conc_code_merged
+    # return tsr_data, conc_code,
     return conc_code, conc_code_merged
 
 

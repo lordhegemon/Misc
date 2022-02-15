@@ -181,8 +181,8 @@ def downloader(lst):
             ending = r"/" + str(i) + "_wellplat.pdf"
             full_url = beg + str(i) + ending
             directory = r"C:\\Work\\WellPlat\\" + str(i) + "_wellplat.pdf"
-            urllib.request.urlretrieve(full_url, directory)
-            numbers_lst.append(i)
+            # urllib.request.urlretrieve(full_url, directory)
+            # numbers_lst.append(i)
             print(full_url)
 
         except (urllib.error.HTTPError, TimeoutError, urllib.error.URLError):

@@ -47,7 +47,48 @@ def printLine(lst):
             print(i, "\t", lst[i])
         print()
 
+def reTranslateData(i):
+    conc_code_merged = i[:6]
+    conc_code_merged[2] = translateNumberToDirection('township', str(conc_code_merged[2]))
+    conc_code_merged[4] = translateNumberToDirection('rng', str(conc_code_merged[4]))
+    conc_code_merged[5] = translateNumberToDirection('baseline', str(conc_code_merged[5]))
+    conc_code = [str(r) for r in conc_code_merged]
+    len_lst = [len(r) for r in conc_code]
+    if len_lst[0] == 1:
+        conc_code[0] = "0" + str(conc_code[0])
+    if len_lst[1] == 1:
+        conc_code[1] = "0" + str(conc_code[1])
+    if len_lst[3] == 1:
+        conc_code[3] = "0" + str(conc_code[3])
+    conc_code = "".join([str(q) for q in conc_code])
+    # return tsr_data, conc_code,
+    return conc_code
 
+def translateNumberToDirection(variable, val):
+    if variable == 'rng':
+        if val == '2':
+            return 'W'
+        elif val == '1':
+            return 'E'
+    elif variable == 'township':
+        if val == '2':
+            return 'S'
+        elif val == '1':
+            return 'N'
+    elif variable == 'baseline':
+        if val == '2':
+            return 'U'
+        elif val == '1':
+            return 'S'
+    elif variable == 'alignment':
+        if val == '1':
+            return 'SE'
+        elif val == '2':
+            return 'NE'
+        elif val == '3':
+            return 'SW'
+        elif val == '4':
+            return 'NW'
 def removeDupesListOfLists(lst):
     dup_free = []
     dup_free_set = set()

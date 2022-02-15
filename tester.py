@@ -1,23 +1,22 @@
-import ModuleAgnostic as ma
-from shapely.geometry import Point, LineString
-from shapely.geometry.polygon import Polygon
-import ProcessCoordData
-import ProcessBHLLocation
-from itertools import chain
-from matplotlib import pyplot as plt
-import math
-import pandas as pd
-import numpy as np
-
-
+import os
+from glob import glob
 def main():
-    center = [1, 1]
-    points = [[0,0], [0,1], [0,2], [1,2], [2,2], [2,1], [2,0], [1,0]]
-    new_data = []
-    df = pd.read_excel("C:\\Work\\RewriteAPD\\Datasets\\AngleToBearing.xlsx", dtype='object')
-    min_df = df[df['min_distance'] == df['min_distance'].min()]
-    print(df)
-
-
-
+    new_path = "C:\\test"
+    files = glob(new_path + '/**/', recursive=True)
+    for i in files:
+        for j in os.listdir(i):
+            if 'cara' in j.lower() and 'tn' not in i.lower():
+                print(i, j)
+            # if searcher_var in j:
+            #     print(j)
+    # path = "C:\\test"
+    # for root, dirs, files in os.walk(path):
+    #     for x in dirs:
+    #         print(x)
+    #     for file in files:
+    #         if 'brush' in file.lower():
+    #             print(file)
+    #             file_path = os.path.join(path, file)
+    #             print(file_path)
+                # os.remove(file_path)
 main()
