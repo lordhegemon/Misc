@@ -5,11 +5,11 @@ from itertools import chain
 
 def main():
     conn, cursor = sqlConnect()
-    section = "25"
-    ts = "3"
+    section = "12"
+    ts = "7"
     ts_dir = "2"
-    rng = "2"
-    rng_dir = "2"
+    rng = "19"
+    rng_dir = "1"
     if ts_dir == "2":
         ts_dir = "S"
     else:
@@ -26,7 +26,7 @@ def main():
         beg = "https://oilgasweb.ogm.utah.gov/apd/attachments/"
         ending = r"/" + str(i) + "_wellplat.pdf"
         full_url = beg + str(i) + ending
-
+        print(full_url)
     ma.printLine(line)
 
 def findData(section, ts, ts_dir, rng, rng_dir, cursor):

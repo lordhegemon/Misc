@@ -243,8 +243,8 @@ def compareGISDataToParsed(df):
     pd.set_option('display.max_columns', None)
     df_parsed = pd.read_csv("AllGrids.csv", encoding="ISO-8859-1")
     df_parsed = df_parsed.to_numpy().tolist()
-    print(df_parsed)
-    print("length", len(df_parsed))
+    # print(df_parsed
+    # print("length", len(df_parsed))
     high_prob_lst, mid_prob_lst = [], []
     for i in range(len(df_parsed)):
         df_parsed[i][:6], df_parsed[i][-1] = [int(j) for j in df_parsed[i][:6]], str(int(df_parsed[i][-1]))
@@ -305,6 +305,7 @@ def compareGISDataToParsed(df):
     all_ids = high_prob_id + mid_prob_id
     counter = 0
     for i in all_data:
+
         edit_line = copy.deepcopy(i)
         data_line = [str(r) for r in edit_line[0][:6]]
         len_lst = [len(r) for r in data_line]
@@ -322,6 +323,7 @@ def compareGISDataToParsed(df):
         new_data.append(conc_val)
         counter_unique = new_data.count(conc_val)
         version_data = "V." + str(counter_unique) + " - " + str(int(all_ids[counter]))
+        print(version_data)
         for r in range(len(edit_line)):
             edit_line[r].append(conc_val)
             edit_line[r].append(version_data)
