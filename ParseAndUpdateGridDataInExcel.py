@@ -14,16 +14,110 @@ def main():
     # parseForUpdatedApds() # search for new apds
     # new_excel_data, new_version_data = parseThroughAPDS()  # search for new grid data in new apds
     # updateExcel() # update excel files with new grid data
+    updateDatabase()
     updateCoordinates()
+
+def updateDatabase():
+    conn = sqlite3.connect("C:\\Work\\RewriteAPD\\APD_Data.db")
+    df_parsed_utm_latlon = pd.read_excel("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\UTM\\FinalGridData.xlsx", dtype='object')
+    print(df_parsed_utm_latlon)
+    df_parsed_utm_latlon.to_sql("SectionDataCoordinates", conn, if_exists='replace')
+
+    df_parsed_utm_latlon = pd.read_csv("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\UTM\\CasingStrengths.csv", dtype='object')
+    df_parsed_utm_latlon.to_sql("CasingStrengths", conn, if_exists='replace')
+
+    df_parsed_utm_latlon = pd.read_csv("C:\\Work\\newapds\\PlatGridNumbers.csv", dtype='object')
+    df_parsed_utm_latlon.to_sql("GridDataLatLonUTM", conn, if_exists='replace')
 
 def updateCoordinates():
     file_paths_new = parseAllFoldersForString("C:\\Work\\newapds")
-    ma.printLine(file_paths_new)
+    path = "C:\\Work\\newapds\\PlatGridNumbers.csv"
+    df_all = pd.read_csv(path, encoding="ISO-8859-1")
+    lst = df_all.to_numpy().tolist()
+    for i in file_paths_new:
+        print(i)
+        wb = openpyxl.load_workbook(i, keep_vba=True, data_only=True)
+        checkEachPage(wb, lst)
+
     pass
 
 
+def checkEachPage(wb, lst):
+    try:
+        ws_lst = [wb['SHL Section'], wb['BHL Section 1'], wb['BHL Section 2'], wb['BHL Section 3']]
+    except KeyError:
+        return
 
+    # ma.printLine(lst)
 
+    tsr_data = ['N11', 'O11', 'P11', 'Q11', 'R11', 'S11']
+    # tsr_data = [ws[i].value for i in tsr_data]
+    # tsr_data_conc = "".join([str(i) for i in tsr_data])
+    # if tsr_data_conc+'West-Up2' not in lst_conc_data:
+    #     print('new', tsr_data_conc)
+    # writeCoordLstSHL = [['West-Up2', 'D25', 'D26', 'D27', 'D28', 'D29'],
+    #                     ['West-Up1', 'D33', 'D34', 'D35', 'D36', 'B37'],
+    #                     ['West-Down1', 'D41', 'D42', 'D43', 'D44', 'D45'],
+    #                     ['West-Down2', 'D49', 'D50', 'D51', 'D52', 'D53'],
+    #                     ['East-Up2', 'U25', 'U26', 'U27', 'U28', 'U29'],
+    #                     ['East-Up1', 'U33', 'U34', 'U35', 'U36', 'U37'],
+    #                     ['East-Down1', 'U41', 'U42', 'U43', 'U44', 'U45'],
+    #                     ['East-Down2', 'U49', 'U50', 'U51', 'U52', 'U53'],
+    #                     ['North-Left2', 'F18', 'F19', 'F20', 'F21', 'F22'],
+    #                     ['North-Left1', 'L18', 'L19', 'L20', 'L21', 'L22'],
+    #                     ['North-Right1', 'P18', 'P19', 'P20', 'P21', 'P22'],
+    #                     ['North-Right2', 'V18', 'V19', 'V20', 'V21', 'V22'],
+    #                     ['South-Left2', 'F57', 'F58', 'F59', 'F60', 'F61'],
+    #                     ['South-Left1', 'L57', 'L58', 'L59', 'L60', 'L61'],
+    #                     ['South-Right1', 'P57', 'P58', 'P59', 'P60', 'P61'],
+    #                     ['South-Right2', 'V57', 'V58', 'V59', 'V60', 'V61']]
+    writeCoordLstBHL = [['West-Up2', 'B25', 'B26', 'B27', 'B28', 'B29'],
+                        ['West-Up1', 'B33', 'B34', 'B35', 'B36', 'B37'],
+                        ['West-Down1', 'B42', 'B43', 'B44', 'B45', 'B46'],
+                        ['West-Down2', 'B50', 'B51', 'B52', 'B53', 'B54'],
+                        ['East-Up2', 'W25', 'W26', 'W27', 'W28', 'W29'],
+                        ['East-Up1', 'W33', 'W34', 'W35', 'W36', 'W37'],
+                        ['East-Down1', 'W42', 'W43', 'W44', 'W45', 'W46'],
+                        ['East-Down2', 'W50', 'W51', 'W52', 'W53', 'W54'],
+                        ['North-Left2', 'E18', 'E19', 'E20', 'E21', 'E22'],
+                        ['North-Left1', 'K18', 'K19', 'K20', 'K21', 'K22'],
+                        ['North-Right1', 'O18', 'O19', 'O20', 'O21', 'O22'],
+                        ['North-Right2', 'U18', 'U19', 'U20', 'U21', 'U22'],
+                        ['South-Left2', 'E57', 'E58', 'E59', 'E60', 'E61'],
+                        ['South-Left1', 'K57', 'K58', 'K59', 'K60', 'K61'],
+                        ['South-Right1', 'O57', 'O58', 'O59', 'O60', 'O61'],
+                        ['South-Right2', 'U57', 'U58', 'U59', 'U60', 'U61']]
+    grid_data_lst = []
+    concs_used = []
+    for k in ws_lst:
+        page_tsr = [str(k[i].value) for i in tsr_data]
+        if 'None' not in page_tsr and '#N/A' not in page_tsr and "#VALUE!" not in page_tsr:
+            grid_data_lst.append([])
+            page_tsr[2], page_tsr[4] , page_tsr[5] = ma.translateDirectionToNumber('township', page_tsr[2]), ma.translateDirectionToNumber('rng', page_tsr[4]), ma.translateDirectionToNumber('baseline', page_tsr[5])
+            # print(page_tsr)
+            page_tsr = [int(float(i)) for i in page_tsr]
+            conc_val = ma.reTranslateData(page_tsr)
+            concs_used.append(conc_val)
+            for i in range(len(writeCoordLstBHL)):
+                line_lst = [k[writeCoordLstBHL[i][j]].value for j in range(1, len(writeCoordLstBHL[i]))]
+                grid_data_lst[-1].append(page_tsr + [writeCoordLstBHL[i][0]] + line_lst)
+    # for i in grid_data_lst:
+    #     for j in i:
+    #         print(j)
+    # lst_data_from_concs =
+    for i in concs_used:
+        for j in lst:
+            if i in j:
+                print(j)
+
+    # for i in lst:
+    #     print(i)
+        # for j in lst:
+        #
+        #     if ma.checkListOfListsIdentical(i, j):
+        #         print(i)
+
+#[2, 23, 2, 20, 1, 1, 'East-Down2', 1326.45, 0.0, 29.0, 12.06, 4.0, 'T', nan, '0223S20ES', 'AGRC V.1']T
 def updateExcel():
     path = "C:\\Work\\newapds\\Casing_Review_Program_V1.xlsm"
     path_updated = "C:\\Work\\newapds\\PlatGridNumbers.csv"
@@ -871,9 +965,7 @@ def parseThroughAPDS():
     return new_excel_data, new_version_data
 
 
-def checkIfNewVersionsAreDuplicates(lst_new, lst_old, new_concs):
-    for i in range(len(lst_new)):
-        pass
+
 
 
 def gatherandTranslateDataIntoExcel(new_excel_data, new_database_lst):
@@ -1031,49 +1123,7 @@ def checkExcelData(ws, lst_conc, file):
     return data_output, lst_conc
 
 
-def checkEachPage(ws, lst_conc_data):
-    tsr_data = ['N7', 'O7', 'P7', 'Q7', 'R7', 'S7']
-    tsr_data = [ws[i].value for i in tsr_data]
-    tsr_data_conc = "".join([str(i) for i in tsr_data])
-    # if tsr_data_conc+'West-Up2' not in lst_conc_data:
-    #     print('new', tsr_data_conc)
-    # writeCoordLstSHL = [['West-Up2', 'D25', 'D26', 'D27', 'D28', 'D29'],
-    #                     ['West-Up1', 'D33', 'D34', 'D35', 'D36', 'B37'],
-    #                     ['West-Down1', 'D41', 'D42', 'D43', 'D44', 'D45'],
-    #                     ['West-Down2', 'D49', 'D50', 'D51', 'D52', 'D53'],
-    #                     ['East-Up2', 'U25', 'U26', 'U27', 'U28', 'U29'],
-    #                     ['East-Up1', 'U33', 'U34', 'U35', 'U36', 'U37'],
-    #                     ['East-Down1', 'U41', 'U42', 'U43', 'U44', 'U45'],
-    #                     ['East-Down2', 'U49', 'U50', 'U51', 'U52', 'U53'],
-    #                     ['North-Left2', 'F18', 'F19', 'F20', 'F21', 'F22'],
-    #                     ['North-Left1', 'L18', 'L19', 'L20', 'L21', 'L22'],
-    #                     ['North-Right1', 'P18', 'P19', 'P20', 'P21', 'P22'],
-    #                     ['North-Right2', 'V18', 'V19', 'V20', 'V21', 'V22'],
-    #                     ['South-Left2', 'F57', 'F58', 'F59', 'F60', 'F61'],
-    #                     ['South-Left1', 'L57', 'L58', 'L59', 'L60', 'L61'],
-    #                     ['South-Right1', 'P57', 'P58', 'P59', 'P60', 'P61'],
-    #                     ['South-Right2', 'V57', 'V58', 'V59', 'V60', 'V61']]
-    writeCoordLstBHL = [['West-Up2', 'B25', 'B26', 'B27', 'B28', 'B29'],
-                        ['West-Up1', 'B33', 'B34', 'B35', 'B36', 'B37'],
-                        ['West-Down1', 'B42', 'B43', 'B44', 'B45', 'B46'],
-                        ['West-Down2', 'B50', 'B51', 'B52', 'B53', 'B54'],
-                        ['East-Up2', 'W25', 'W26', 'W27', 'W28', 'W29'],
-                        ['East-Up1', 'W33', 'W34', 'W35', 'W36', 'W37'],
-                        ['East-Down1', 'W42', 'W43', 'W44', 'W45', 'W46'],
-                        ['East-Down2', 'W50', 'W51', 'W52', 'W53', 'W54'],
-                        ['North-Left2', 'E18', 'E19', 'E20', 'E21', 'E22'],
-                        ['North-Left1', 'K18', 'K19', 'K20', 'K21', 'K22'],
-                        ['North-Right1', 'O18', 'O19', 'O20', 'O21', 'O22'],
-                        ['North-Right2', 'U18', 'U19', 'U20', 'U21', 'U22'],
-                        ['South-Left2', 'E57', 'E58', 'E59', 'E60', 'E61'],
-                        ['South-Left1', 'K57', 'K58', 'K59', 'K60', 'K61'],
-                        ['South-Right1', 'O57', 'O58', 'O59', 'O60', 'O61'],
-                        ['South-Right2', 'U57', 'U58', 'U59', 'U60', 'U61']]
-    for i in range(len(writeCoordLstBHL)):
-        line_lst = [ws[writeCoordLstBHL[i][j]].value for j in range(1, len(writeCoordLstBHL[i]))]
-        # print(tsr_data, writeCoordLstBHL[i][0], line_lst)
-        # for j in range(1, len(writeCoordLstBHL[i])):
-        #     print(ws[writeCoordLstBHL[i][j]].value)
+
 
 
 def parseForUpdatedApds():

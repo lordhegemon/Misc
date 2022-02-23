@@ -89,6 +89,40 @@ def translateNumberToDirection(variable, val):
             return 'SW'
         elif val == '4':
             return 'NW'
+
+def translateDirectionToNumber(variable, val):
+    if variable == 'rng':
+        if val == 'W':
+            return '2'
+        elif val == 'E':
+            return '1'
+        else:
+            return val
+    elif variable == 'township':
+        if val == 'S':
+            return '2'
+        elif val == 'N':
+            return '1'
+        else:
+            return val
+    elif variable == 'baseline':
+        if val == 'U' or val.lower() == 'uintah':
+            return '2'
+        elif val == 'S' or val.lower() == "salt lake":
+            return '1'
+        else:
+            return val
+    elif variable == 'alignment':
+        if val == 'SE':
+            return '1'
+        elif val == 'NE':
+            return '2'
+        elif val == 'SW':
+            return '3'
+        elif val == 'NW':
+            return '4'
+        else:
+            return val
 def removeDupesListOfLists(lst):
     dup_free = []
     dup_free_set = set()
