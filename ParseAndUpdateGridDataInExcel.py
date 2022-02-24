@@ -956,7 +956,7 @@ def parseThroughAPDS():
     #     for j in range(len(new_excel_conc)):
     #         if new_excel_conc[j] in new_lst[i][-2]:
     #             new_excel_data.append(new_lst[i])
-    checkIfNewVersionsAreDuplicates(new_version_data, lst, new_excel_conc)
+    # checkIfNewVersionsAreDuplicates(new_version_data, lst, new_excel_conc)
     all_data_to_excel, wb, ws = gatherandTranslateDataIntoExcel(new_excel_data, copy.deepcopy(lst))
     all_data_to_db = transformDataIntoDatabaseFormat(lst, copy.deepcopy(new_excel_data), copy.deepcopy(new_version_data))
     # addDataToDatabase(all_data_to_db)
