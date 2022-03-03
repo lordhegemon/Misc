@@ -91,12 +91,8 @@ def runData(i, fileName, counter):
     Example: The coordinates given go from the top of the label "Producing Wells" to the bottom of the label "Total" that occurs below it."""
     bounded_lst = [findOccurencesOfWordTotal.findTotalOccurencesAndMatch(sorted_positions[i], text_data_edited[i]) for i in range(len(sorted_positions))]
 
-    """This uses those bounding boxes and then finds the appropriate labels and their locations. In other words, it takes the bounding box defined previously, and finds the coordinates
-    
+    """This uses those bounding boxes and then finds the appropriate labels and their locations. In other words, it takes the bounding box defined previously, and finds the coordinates    
      for each well count LABEL that occurs (Oil wells, gas wells, etc). It doesn't find the actual count number"""
-
-
-
     bounded_comp_lst = [IsolateAndMatchData.isolateData(text_data_edited[i], bounded_lst[i], sorted_positions[i]) for i in range(len(bounded_lst))]
 
     """This takes all previously Mused data and finds the actual counts, then formats the data"""
@@ -106,8 +102,6 @@ def runData(i, fileName, counter):
         out, all_visual = IsolateAndMatchData.matchCountAndLabel(bounded_comp_lst[i], text_data_edited[i])
         tot_lst.append(out)
         test = bounded_comp_lst[i] + visual_lst[i] + all_visual
-
-        # ModuleAgnostic.graphData(test)
 
     """Merge all the data into a list of sublists where each sublist corresponds to a page."""
 
@@ -119,8 +113,6 @@ def runData(i, fileName, counter):
 
 
 """I'm not going to lie, I don't truthfully know how all this works. I just stole it off google and it worked."""
-
-
 def textBoxGather(path):
     fp = open(path, 'rb')
     rsrcmgr = PDFResourceManager()
@@ -184,8 +176,8 @@ def pageMerger(lst):
 
     checker_lst_page = [i for i in lst_page if i]
     checker_lst_page0 = [i for i in lst_page0 if i]
-    collapsed_lst_page0 = list(itertools.chain.from_iterable(lst_page0))
-    pages = list(set(all_pages).intersection(list(itertools.chain.from_iterable(lst_page0))))
+    # collapsed_lst_page0 = list(itertools.chain.from_iterable(lst_page0))
+    # pages = list(set(all_pages).intersection(list(itertools.chain.from_iterable(lst_page0))))
 
 
     if len(checker_lst_page) > len(checker_lst_page0):
@@ -198,12 +190,9 @@ def pageMerger(lst):
     for i in range(len(lst_page)):
         if not lst_page[i]:
             lst_page[i - 1].append(all_pages[i])
-
     """
     Remove any empty sublists that remain"""
     lst_page = [i for i in lst_page if i]
-
-
 
     """
     Adjust page y counts by 800 (roughly the height of a page) This effectively turns the two pages into one page that is twice as tall as a normal page"""
@@ -211,7 +200,6 @@ def pageMerger(lst):
 
     """
     Given these are scanned pages, errors are expected. This module attempts to correct most of them."""
-
     modded_lst = pageMergerCorrector(modded_lst)
 
     """
@@ -232,7 +220,6 @@ def correctForMissingWellStatuses(lst_well, lst_new, lst_all):
 
 def pageMergerCorrectForTwoPages(lst_page, lst):
     modded_lst = []
-
     """Parse through pages"""
     for i in range(len(lst_page)):
         modded_lst.append([])
@@ -266,7 +253,6 @@ def pageMergerCorrector(modded_lst):
             modded_lst[i][j][-1] = modded_lst[i][j][-1].replace(r'(', "")
 
             if len(modded_lst[i][j][-1]) > 1:
-                # print(modded_lst[i][j])
                 if modded_lst[i][j][-1][0] == '.':
                     modded_lst[i][j][-1] = modded_lst[i][j][-1][1:]
                 elif modded_lst[i][j][-1][0] == "\'":
@@ -286,7 +272,6 @@ def pageMergerCorrector(modded_lst):
             bounded_comp_split = modded_lst[i][j][-1].split()
             """Parse the corrector list"""
             for k in corrector:
-
                 """Parse the new list"""
                 for p in range(len(bounded_comp_split)):
                     """Does the corrector value occur in that part of the new split list?"""
@@ -296,7 +281,6 @@ def pageMergerCorrector(modded_lst):
                         modded_lst[i][j][-1] = " ".join(bounded_comp_split)
 
                 """This additional check looks to see if the entire unsplit string matches any components and then corrects them."""
-
                 if k[0].lower() == modded_lst[i][j][-1].lower():
                     modded_lst[i][j][-1] = k[1]
             modded_lst[i][j][-1] = doubleCheckLabels(modded_lst[i][j][-1])
@@ -311,9 +295,7 @@ def doubleCheckLabels(label):
     for i in range(len(data)):
         data_lst, label_lst = [i for i in list(data[i]) if i != ' '], [i for i in list(label) if i != ' ']
         data_combined, label_combined = "".join(data_lst), "".join(label_lst)
-
         one_wrong_value_ratio = (len(data_lst) - 2) / len(data_lst)
-
         if SequenceMatcher(None, data_combined, label_combined).ratio() > one_wrong_value_ratio:
             return data[i]
         elif data[i] != label and data_combined == label_combined:
@@ -376,6 +358,7 @@ def findCorrectDates(parsedDataContent):
 
             """Get rid of the data after that index marker, then split into a list of components"""
             new_val_lst = parsedDataLst[i][:index].split()
+
             """Grab the component at the end. That should be the month"""
             date = new_val_lst[-1]
 
@@ -383,7 +366,8 @@ def findCorrectDates(parsedDataContent):
             count_slash = date.count("/")
             if count_slash == 0:
                 date = '99/99/99'
-                count_slash =2
+                count_slash = 2
+
             """If there are two of more slashes and the component at [2] or [5] is a 1 (should be a /), correct it through list splicing"""
             if count_slash < 2 and date[2] == '1':
                 date = date[:2] + "/" + date[3:]
@@ -391,7 +375,6 @@ def findCorrectDates(parsedDataContent):
                 date = date[:5] + "/" + date[6:]
 
             """Counter is added to mark the page"""
-
             date = re.sub(r'[^0-9./ ]+', '', date).strip()
             re_com = re.compile(r"\d{2}[/]\d{2}[/]\d{2}")
             if re_com.search(date) is None:
