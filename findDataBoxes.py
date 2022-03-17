@@ -2,12 +2,25 @@ import copy
 import re
 import statistics as st
 from itertools import chain
-import ModuleAgnostic
+import ModuleAgnostic as ma
 
 """Use the pdfminer data, and find the data for the two boxed data sections at the bottom of the page. harder than you'd think"""
 
 
+
 def findMain(lst):
+    # for i in lst:
+    #     fig, ax1 = plt.subplots()
+    #     centroids = [[[k[0], k[1]], [k[0], k[3]], [k[2], k[3]], [k[2], k[1]]] for k in i]
+    #     centroids = [Polygon(r).centroid for r in centroids]
+    #     centroids = [[r.x, r.y] for r in centroids]
+    #     x1, y1 = [r[0] for r in centroids], [r[1] for r in centroids]
+    #     for k in range(len(i)):
+    #         # print(x1[k], y1[k], i[k][-1])
+    #         ax1.text(x1[k], y1[k], i[k][-1])
+    #     ax1.scatter(x1, y1, c='black')
+    #     plt.show()
+
     """These are the parameters we're looking for that occur inside each box."""
     data_parameters1 = ['Federal Lease Wells', 'Indian Lease Wells', 'State Lease Wells', 'Fee Lease Wells', 'Multi Lease']
     data_parameters2 = ['Total Wells Drilled', 'Total Non-Plugged Wells', 'Total Wells Capable of Producing', 'Total Holes not Completed']
@@ -19,11 +32,13 @@ def findMain(lst):
     visual_lst = [[i] for i in visual_lst]
 
 
-
     """For the left side, it's harder to determine due to the Producing/Shut-In headers above the data that can be used to find the coordinates"""
     count_data_left = findMatchingCount(lst)
-
     count_data_left = [sorted(count_data_left[i], key=lambda x: x[0]) for i in range(len(count_data_left))]
+
+
+
+
 
     for i in range(len(count_data_left)):
         if multi_lst[i] is True and len(count_data_left[i][0]) > len(count_data_left[i][1]):
@@ -52,18 +67,25 @@ def findMain(lst):
             foo = [k for k in count_data_left[i][j] if isinstance(k, list)]
             for k in foo:
                 visual_lst[i][j].append(k)
-                # print('foo', k)
-            # left_data.append(foo)
-        # print('left', left_data)
-        # visual_lst[i].append(left_data)
+    test_lst = copy.deepcopy(visual_lst)
+    test_lst = [i[:-1] for i in test_lst]
+    # for i in test_lst:
+    #     i = list(chain.from_iterable(i))
+    #     fig, ax1 = plt.subplots()
+    #     centroids = [[[k[0], k[1]], [k[0], k[3]], [k[2], k[3]], [k[2], k[1]]] for k in i]
+    #     centroids = [Polygon(r).centroid for r in centroids]
+    #     centroids = [[r.x, r.y] for r in centroids]
+    #     x1, y1 = [r[0] for r in centroids], [r[1] for r in centroids]
+    #     for k in range(len(i)):
+    #
+    #         ax1.text(x1[k], y1[k], i[k][-1])
+    #     ax1.scatter(x1, y1, c='black')
+    #     plt.show()
 
-    # for i in visual_lst[i]:
-    #     print(len(i))
 
 
     """Seperate the generated data into whether it is shut in or producing"""
     prod_lst = [[count_data_left[i][0][k][-1] for k in range(1, len(count_data_left[i][0]))] for i in range(len(count_data_left))]
-
     shut_lst = [[count_data_left[i][1][k][-1] for k in range(1, len(count_data_left[i][0]))] for i in range(len(count_data_left))]
 
     for i in range(len(prod_lst)):

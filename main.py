@@ -6,8 +6,12 @@ from pdfminer.pdfpage import PDFPage
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.converter import PDFPageAggregator
 from pdfminer.layout import LTPage, LTChar, LTAnno, LAParams, LTTextBox, LTTextLine
-
-import ModuleAgnostic
+from matplotlib import pyplot as plt
+import copy
+from shapely.geometry import Point
+from shapely.geometry.polygon import Polygon
+import ModuleAgnostic as ma
+import time
 import findPositionsForSections
 import findOccurencesOfWordTotal
 import IsolateAndMatchData
@@ -25,23 +29,14 @@ The second section performs a parse through the folder where the .py file is cur
 
 def main():
     print("Beginning")
-    # counter = 1
-    # i, fileName = getFileThroughPrompt()
-    # runData([os.path.join(i, fileName)][0], fileName, counter)
-    # try:
-    #     runData([os.path.join(i, fileName)][0], fileName)
-    # except Exception as e:
-    #     print(e)
-    # try:
-    #     runData([os.path.join(i, fileName)], fileName)
-    # except pdfminer.pdfparser.PDFSyntaxError:
-    #     print('Not a pdf or not the right pdf format')
+    time_1 = time.perf_counter()
     counter = 1
     path = os.getcwd()
     for fileName in os.listdir(path):
         if os.path.isfile(os.path.join(path, fileName)) and 'pdf' in fileName:
             runData(os.path.join(path, fileName), fileName, counter)
             counter += 1
+    print(time.perf_counter() - time_1)
     print("Completed")
 
 
@@ -86,6 +81,8 @@ def runData(i, fileName, counter):
     sorted_positions, positions2 = findPositionsForSections.findPositions(text_data_edited)
 
 
+
+
     """Takes the previous data and generates a bounding box for the data of each box. In otherwords, the previous function finds the coordinates for the label itself. 
     This gets the coordinates for the data that corresponds to that label
     Example: The coordinates given go from the top of the label "Producing Wells" to the bottom of the label "Total" that occurs below it."""
@@ -94,15 +91,47 @@ def runData(i, fileName, counter):
     """This uses those bounding boxes and then finds the appropriate labels and their locations. In other words, it takes the bounding box defined previously, and finds the coordinates    
      for each well count LABEL that occurs (Oil wells, gas wells, etc). It doesn't find the actual count number"""
     bounded_comp_lst = [IsolateAndMatchData.isolateData(text_data_edited[i], bounded_lst[i], sorted_positions[i]) for i in range(len(bounded_lst))]
-
     """This takes all previously Mused data and finds the actual counts, then formats the data"""
     tot_lst = []
+
+
+    # for i in bounded_comp_lst:
+    #     print("go")
+    #     ma.printLine(i)
+    #     i = list(itertools.chain.from_iterable(copy.deepcopy(i)))
+    #     fig, ax1 = plt.subplots()
+    #     centroids = [[[k[0], k[1]], [k[0], k[3]], [k[2], k[3]], [k[2], k[1]]] for k in i]
+    #     centroids = [Polygon(r).centroid for r in centroids]
+    #     centroids = [[r.x, r.y] for r in centroids]
+    #     x1, y1 = [r[0] for r in centroids], [r[1] for r in centroids]
+    #     for k in range(len(i)):
+    #         # print(x1[k], y1[k], i[k][-1])
+    #         ax1.text(x1[k], y1[k], i[k][-1])
+    #     ax1.scatter(x1, y1, c='black')
+    #     plt.show()
+    #
+
+
+
     for i in range(len(bounded_comp_lst)):
-        print("______________________________________________\nPage ", i)
+        print("______________________________________________\nPage ", i, " Processed!")
         out, all_visual = IsolateAndMatchData.matchCountAndLabel(bounded_comp_lst[i], text_data_edited[i])
         tot_lst.append(out)
         test = bounded_comp_lst[i] + visual_lst[i] + all_visual
+        # print("go")
 
+        # test = list(itertools.chain.from_iterable(copy.deepcopy(test)))
+        # ma.printLine(test)
+        # fig, ax1 = plt.subplots()
+        # centroids = [[[k[0], k[1]], [k[0], k[3]], [k[2], k[3]], [k[2], k[1]]] for k in test]
+        # centroids = [Polygon(r).centroid for r in centroids]
+        # centroids = [[r.x, r.y] for r in centroids]
+        # x1, y1 = [r[0] for r in centroids], [r[1] for r in centroids]
+        # for k in range(len(test)):
+        #     # print(x1[k], y1[k], i[k][-1])
+        #     ax1.text(x1[k], y1[k], test[k][-1])
+        # ax1.scatter(x1, y1, c='black')
+        # plt.show()
     """Merge all the data into a list of sublists where each sublist corresponds to a page."""
 
     all_data_merged = [[date_lst[i] + tot_lst[i] + count_data_left[i] + count_data_right[i]] for i in range(len(tot_lst))]
@@ -112,7 +141,7 @@ def runData(i, fileName, counter):
     CSVOrganizerAndPrinter.mainCSVProcess(all_data_merged, counter)
 
 
-"""I'm not going to lie, I don't truthfully know how all this works. I just stole it off google and it worked."""
+
 def textBoxGather(path):
     fp = open(path, 'rb')
     rsrcmgr = PDFResourceManager()
@@ -241,9 +270,14 @@ Correct any common errors seen in the data due to scan quality"""
 
 def pageMergerCorrector(modded_lst):
     """Each corrector component has two values. The first is the error, and the second is the corrected component"""
-    corrector = [['wed.er', 'Water'], ['apos', 'APDs'], ['ap0s', 'APDs'], ['0~', 'Oil'], ['o~', 'Oil'], ['unkncwm', 'Unknown'], ['tnjecton', 'Injection'], ['lnjecton', 'Injection'], ['jnjecton', 'Injection'], ['wens', 'Wells'], ['TEMPORARIL Y-ABANOONED WELLS', 'Temporarily-Abandoned Wells'],
-                 ['ABANOONED', 'Abandoned'], ['··', '-'], ['••', '-'], ['-·', '-'], ["SHUT -IN WELLS", "SHUT-IN WELLS"], ['TEMPORARILY-ABANDONED WELL~', 'TEMPORARILY-ABANDONED WELLS'], ['yijells', 'Wells'], ['cap?ble','Capable'], ['NEW APDs RECIEVED Not yet approved','New APDs - Not yet approved'],
-                 ['drllled','Drilled'], ['fl!ew apds -- not yet approved', 'New APDs - Not yet approved'], ['r_il_le_d', 'Drilled'], ['---t-o-t-al-w-el-ls_d_','Total Wells'], ['1.ease', 'lease']]
+    corrector = [['wed.er', 'Water'], ['apos', 'APDs'], ['ap0s', 'APDs'], ['0~', 'Oil'], ['o~', 'Oil'], ['unkncwm', 'Unknown'],
+                 ['tnjecton', 'Injection'], ['lnjecton', 'Injection'], ['jnjecton', 'Injection'], ['wens', 'Wells'],
+                 ['TEMPORARIL Y-ABANOONED WELLS', 'Temporarily-Abandoned Wells'],
+                 ['ABANOONED', 'Abandoned'], ['··', '-'], ['••', '-'], ['-·', '-'], ["SHUT -IN WELLS", "SHUT-IN WELLS"],
+                 ['TEMPORARILY-ABANDONED WELL~', 'TEMPORARILY-ABANDONED WELLS'], ['yijells', 'Wells'], ['cap?ble','Capable'],
+                 ['NEW APDs RECIEVED Not yet approved','New APDs - Not yet approved'],
+                 ['drllled','Drilled'], ['fl!ew apds -- not yet approved', 'New APDs - Not yet approved'],
+                 ['r_il_le_d', 'Drilled'], ['---t-o-t-al-w-el-ls_d_','Total Wells'], ['1.ease', 'lease']]
     for i in range(len(modded_lst)):
         for j in range(len(modded_lst[i])):
             modded_lst[i][j][-1] = modded_lst[i][j][-1].replace('••', '- ')
