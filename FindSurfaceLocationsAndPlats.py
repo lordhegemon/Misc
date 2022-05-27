@@ -602,9 +602,7 @@ def sideDataToDecimalAzimuth(dir_lst, data):
         new_data = [[float(j) for j in i] for i in new_data]
         new_data = [[data[i][6]] + new_data[i] for i in range(len(new_data))]
         data_converted = convertDirections(new_data, dir_lst_flatten)
-
     else:
-
         new_data = [i[7:12] for i in data]
         new_data = [[float(j) for j in i] for i in new_data]
         for r in range(len(new_data)):
