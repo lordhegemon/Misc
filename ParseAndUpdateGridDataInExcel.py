@@ -15,19 +15,19 @@ def main():
     # new_excel_data, new_version_data = parseThroughAPDS()  # search for new grid data in new apds
     # updateExcel() # update excel files with new grid data
     updateDatabase()
-    updateCoordinates()
+    # updateCoordinates()
 
 def updateDatabase():
     conn = sqlite3.connect("C:\\Work\\RewriteAPD\\APD_Data.db")
     df_parsed_utm_latlon = pd.read_excel("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\UTM\\FinalGridData.xlsx", dtype='object')
     print(df_parsed_utm_latlon)
     df_parsed_utm_latlon.to_sql("SectionDataCoordinates", conn, if_exists='replace')
-
-    df_parsed_utm_latlon = pd.read_csv("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\UTM\\CasingStrengths.csv", dtype='object')
-    df_parsed_utm_latlon.to_sql("CasingStrengths", conn, if_exists='replace')
-
-    df_parsed_utm_latlon = pd.read_csv("C:\\Work\\newapds\\PlatGridNumbers.csv", dtype='object')
-    df_parsed_utm_latlon.to_sql("GridDataLatLonUTM", conn, if_exists='replace')
+c
+    # df_parsed_utm_latlon = pd.read_csv("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\UTM\\CasingStrengths.csv", dtype='object')
+    # df_parsed_utm_latlon.to_sql("CasingStrengths", conn, if_exists='replace')
+    #
+    # df_parsed_utm_latlon = pd.read_csv("C:\\Work\\newapds\\PlatGridNumbers.csv", dtype='object')
+    # df_parsed_utm_latlon.to_sql("GridDataLatLonUTM", conn, if_exists='replace')
 
 def updateCoordinates():
     file_paths_new = parseAllFoldersForString("C:\\Work\\newapds")
