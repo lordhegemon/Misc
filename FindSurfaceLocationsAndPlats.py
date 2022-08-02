@@ -1,6 +1,6 @@
 import os
 import copy
-import LatLon23 as LatLon
+
 import openpyxl
 import utm
 import xlwings as xw

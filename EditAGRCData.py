@@ -3,7 +3,6 @@ import os
 import pandas as pd
 import numpy as np
 from shapely.ops import cascaded_union
-from rtree import index
 from shapely.geometry import mapping
 import GatherPlatDataSet
 import ModuleAgnostic as ma
@@ -166,10 +165,7 @@ def findPointsOnLine(xy1, xy2, div):
     return [x, y]
     # return x,y
 
-def checkClockwisePts(coords):
-    center = tuple(map(operator.truediv, reduce(lambda x, y: map(operator.add, x, y), coords), [len(coords)] * 2))
-    output = sorted(coords, key=lambda coord: (-135 - math.degrees(math.atan2(*tuple(map(operator.sub, coord, center))[::-1]))) % 360)
-    return output
+
 
 
 def checkForPointsTooCloseToCorners(lst, centroid, o_lst, counter_def):
@@ -207,48 +203,10 @@ def checkForPointsTooCloseToCorners(lst, centroid, o_lst, counter_def):
     return corners, lst
 
 
-def reorganizeLstPointsWithAngle(lst, centroid):
-    lst_arrange = [i + [(math.degrees(math.atan2(centroid[1] - i[1], centroid[0] - i[0])) + 360) % 360] for i in lst]
-    return lst_arrange
 
 
-def arrangeDirectionData(corner, lst, label):
-    found_data_theoretical_pts = []
-    found_side_data = []
-    new_sides = []
-    if label == 'west':
-        xy1, xy2 = corner[0], corner[3]
-    if label == 'north':
-        xy1, xy2 = corner[3], corner[2]
-    if label == 'east':
-        xy1, xy2 = corner[2], corner[1]
-    if label == 'south':
-        xy1, xy2 = corner[1], corner[0]
-    angles = [xy1[-1], xy2[-1]]
-    found_side_data.append(xy1)
-    for i in lst:
-        if label == 'west':
-            if 360 > i[-1] > max(angles) or min(angles) > i[-1] > 0:
-                found_side_data.append(i)
-        else:
-            if max(angles) > i[-1] > min(angles):
-                found_side_data.append(i)
-    found_side_data.append(xy2)
-    if len(found_side_data) > 5:
-        for k in range(5):
-            distance_lst = []
-            div = k / 4
-            found_pt = findPointsOnLine(found_side_data[0], found_side_data[-1], div)
-            found_data_theoretical_pts.append(found_pt)
-            for l in found_side_data:
-                distance_lst.append([l, ma.findSegmentLength(found_pt, l)])
-            distance_lst = sorted(distance_lst, key=lambda r: r[1])
-            new_sides.append(distance_lst[0][0])
-    else:
-        new_sides = found_side_data
-    found_side_data = new_sides
 
-    return found_side_data
+
 
 
 def findNewLengthAndAngle(xy1, xy2, label, found_side_data):
@@ -301,38 +259,6 @@ def changeAngles(label, angle, found_side_data):
                 ax1.scatter(x1, y1, c='black')
                 ax1.set_aspect('equal', adjustable='box')
                 plt.show()
-    # if 'west' in data[i][0].lower():
-    #     if dir_val in [4, 1]:
-    #         decVal = 90 + dec_val_base
-    #     else:
-    #         decVal = 90 - dec_val_base
-    # if 'east' in data[i][0].lower():
-    #     if dir_val in [4, 1]:
-    #         decVal = 270 + dec_val_base
-    #     else:
-    #         decVal = 270 - dec_val_base
-    # if 'north' in data[i][0].lower():
-    #     if dir_val in [3, 2]:
-    #         decVal = 360 - (270 + dec_val_base)
-    #     else:
-    #         decVal = 270 + dec_val_base
-    # if 'south' in data[i][0].lower():
-    #     if dir_val in [4, 1]:
-    #         decVal = 90 + dec_val_base
-    #     else:
-    #         decVal = 360 - (90 + dec_val_base)
-
-def cornerGeneratorProcess(data_lengths):
-    centroid = Polygon(data_lengths).centroid
-    centroid = [centroid.x, centroid.y]
-    lst_poly = Polygon(data_lengths)
-    bounds = lst_poly.bounds
-    bounds_lst = organizeBoundsToPoints(bounds)
-    corners = determinePointProximity(bounds_lst, data_lengths)
-    corners = checkClockwisePts(corners)
-    corner_arrange = [i + [(math.degrees(math.atan2(centroid[1] - i[1], centroid[0] - i[0])) + 360) % 360] for i in corners]
-    corners = sorted(corner_arrange, key=lambda r: r[-1])
-    return corners
 
 
 
@@ -363,31 +289,11 @@ def findCorners(lst):
         lst = checkClockwisePts(lst)
     except TypeError:
         print(lst)
-
     data_lengths = []
-
     centroid = Polygon(lst).centroid
     centroid = [centroid.x, centroid.y]
-    # print(centroid)
     for i in range(len(lst)):
-        # output = GatherPlatDataSet.slopeFinder2(centroid, lst[i])
         data_lengths.append(lst[i] + [ma.findSegmentLength(centroid, lst[i])])
-
-    # corners = cornerGeneratorProcess(data_lengths)
-
-    # lst_poly = Polygon(data_lengths)
-    # bounds = lst_poly.bounds
-    # bounds_lst = organizeBoundsToPoints(bounds)
-    # corners = determinePointProximity(bounds_lst, data_lengths)
-    # corners = checkClockwisePts(corners)
-    # corner_arrange = [i + [(math.degrees(math.atan2(centroid[1] - i[1], centroid[0] - i[0])) + 360) % 360] for i in corners]
-    # corners = sorted(corner_arrange, key=lambda r: r[-1])
-
-    # if counter == 0:
-    #     print(1, corners)
-    # # corners, data_lengths = checkForPointsTooCloseToCorners(data_lengths, centroid, lst, counter)
-    # if counter == 0:
-    #     print(2, corners)
     corners = cornerGeneratorProcess(data_lengths)
     data_lengths = reorganizeLstPointsWithAngle(data_lengths, centroid)
     east_side = arrangeDirectionData(corners, data_lengths, 'east')
@@ -398,86 +304,68 @@ def findCorners(lst):
     east_side = [i[:2] + ["EAST"] for i in east_side]
     north_side = [i[:2] + ["NORTH"] for i in north_side]
     south_side = [i[:2] + ["SOUTH"] for i in south_side]
-
-    # all_data = west_side[1:] + north_side[1:] + east_side[1:] + south_side[1:]
     all_data = west_side + north_side + east_side + south_side
-    # fig, ax1 = plt.subplots()
-    # # # x1, y1 = [i[0] for i in found_data_theoretical_pts], [i[1] for i in found_data_theoretical_pts]
-    # x1, y1  = [i[0] for i in data_lengths], [i[1] for i in data_lengths]
-    # for i in range(len(data_lengths)):
-    #     ax1.text(data_lengths[i][0], data_lengths[i][1], str(round(data_lengths[i][-1],2)))
-    # x1, y1 = [i[0] for i in east_side], [i[1] for i in east_side]
-    # x2, y2 = [i[0] for i in north_side], [i[1] for i in north_side]
-    # x3, y3 = [i[0] for i in west_side], [i[1] for i in west_side]
-    # x4, y4 = [i[0] for i in south_side], [i[1] for i in south_side]
-
-    # ax1.scatter(x1, y1, c='black')
-    # ax1.scatter(x2, y2, c='blue')
-    # ax1.scatter(x3, y3, c='red')
-    # ax1.scatter(x4, y4, c='yellow')
-    # plt.show()
-    # east_side = findSideValues(lst, corners, 'east')
-    # north_side = findSideValues(lst, corners, 'north')
-    # west_side = findSideValues(lst, corners, 'west')
-    # south_side = findSideValues(lst, corners, 'south')
-
-    # for xy1, xy2 in zip(lst, lst[1:]):
-    #     output = GatherPlatDataSet.slopeFinder2(xy1, xy2)
-    #     data_group.append([math.degrees(math.atan(1/output[0]))] + xy1)
-    # output_data = [[data_group[0]]]
-    # ns_lst, ew_lst = [], []
-    # lst_test = [[]]
-    # for xy1, xy2 in zip(data_group, data_group[1:]):
-    #     diff_val = abs(xy1[0] - xy2[0])
-
-    #
-    # for i in range(len(data_group)):
-    #     if abs(data_group[i][0]) > 45:
-    #         ns_lst.append(data_group[i][1:])
-    #     else:
-    #         ew_lst.append(data_group[i][1:])
-
-    # ns_1, ns_2 = [i[0] for i in ns_lst], [i[1] for i in ns_lst]
-    # ew_1, ew_2 = [i[0] for i in ew_lst], [i[1] for i in ew_lst]
-    # data_ew = dict(enumerate(ma.grouper(sorted(ew_1), 100), 1))
-    # output_data_ew = [j for i, j in data_ew.items()]
-
-    #
-    # data_ns = dict(enumerate(ma.grouper(sorted(ns_2), 100), 1))
-    # output_data_ns = [j for i, j in data_ns.items()]
-
-    # for i in range(1, len(data_group)):
-    #     diff = abs(data_group[i][0] - output_data[-1][-1][0])
-    #     if diff > 45:
-    #         output_data.append([])
-    #     output_data[-1].append(data_group[i])
-    #     if abs(data_group[i][0] - output_data[-1][-1][0]) > 45:
-    #         output_data.append([])
-    #     output_data[-1].append(data_group)
-    # all_data = west_side[1:] + north_side[1:] + east_side[1:] + south_side[1:]
-    # all_data = west_side + north_side + east_side + south_side
-    # all_data = ma.removeDupesListOfLists(all_data)
-
-    # if counter == 442:
-    #     fig, ax1 = plt.subplots()
-    #     # x1, y1 = [i[0] for i in east_side], [i[1] for i in east_side]
-    #     # x2, y2 = [i[0] for i in north_side], [i[1] for i in north_side]
-    #     # x3, y3 = [i[0] for i in west_side], [i[1] for i in west_side]
-    #     # x4, y4 = [i[0] for i in south_side], [i[1] for i in south_side]
-    #     x1, y1 = [corners[0][0]], [corners[0][1]]
-    #     x2, y2 = [corners[1][0]], [corners[1][1]]
-    #     x3, y3 = [corners[2][0]], [corners[2][1]]
-    #     x4, y4 = [corners[3][0]], [corners[3][1]]
-    #     x5, y5 = [i[0] for i in bounds_lst], [i[1] for i in bounds_lst]
-    #     x6, y6 = [i[0] for i in all_data], [i[1] for i in all_data]
-    #     ax1.scatter(x1, y1, c='black')  # east
-    #     ax1.scatter(x2, y2, c='blue')  # north
-    #     ax1.scatter(x3, y3, c='red')  # west
-    #     ax1.scatter(x4, y4, c='yellow')  # south
-    #     ax1.scatter(x5, y5, c='grey', s=5)
-    #     ax1.scatter(x6, y6, c='red', s = 1)
-    #     plt.show()
     return all_data
+
+def checkClockwisePts(coords):
+    center = tuple(map(operator.truediv, reduce(lambda x, y: map(operator.add, x, y), coords), [len(coords)] * 2))
+    output = sorted(coords, key=lambda coord: (-135 - math.degrees(math.atan2(*tuple(map(operator.sub, coord, center))[::-1]))) % 360)
+    return output
+
+
+def cornerGeneratorProcess(data_lengths):
+    centroid = Polygon(data_lengths).centroid
+    centroid = [centroid.x, centroid.y]
+    lst_poly = Polygon(data_lengths)
+    bounds = lst_poly.bounds
+    bounds_lst = organizeBoundsToPoints(bounds)
+    corners = determinePointProximity(bounds_lst, data_lengths)
+    corners = checkClockwisePts(corners)
+    corner_arrange = [i + [(math.degrees(math.atan2(centroid[1] - i[1], centroid[0] - i[0])) + 360) % 360] for i in corners]
+    corners = sorted(corner_arrange, key=lambda r: r[-1])
+    return corners
+
+def reorganizeLstPointsWithAngle(lst, centroid):
+    lst_arrange = [i + [(math.degrees(math.atan2(centroid[1] - i[1], centroid[0] - i[0])) + 360) % 360] for i in lst]
+    return lst_arrange
+
+def arrangeDirectionData(corner, lst, label):
+    found_data_theoretical_pts = []
+    found_side_data = []
+    new_sides = []
+    if label == 'west':
+        xy1, xy2 = corner[0], corner[3]
+    if label == 'north':
+        xy1, xy2 = corner[3], corner[2]
+    if label == 'east':
+        xy1, xy2 = corner[2], corner[1]
+    if label == 'south':
+        xy1, xy2 = corner[1], corner[0]
+    angles = [xy1[-1], xy2[-1]]
+    found_side_data.append(xy1)
+    for i in lst:
+        if label == 'west':
+            if 360 > i[-1] > max(angles) or min(angles) > i[-1] > 0:
+                found_side_data.append(i)
+        else:
+            if max(angles) > i[-1] > min(angles):
+                found_side_data.append(i)
+    found_side_data.append(xy2)
+    if len(found_side_data) > 5:
+        for k in range(5):
+            distance_lst = []
+            div = k / 4
+            found_pt = findPointsOnLine(found_side_data[0], found_side_data[-1], div)
+            found_data_theoretical_pts.append(found_pt)
+            for l in found_side_data:
+                distance_lst.append([l, ma.findSegmentLength(found_pt, l)])
+            distance_lst = sorted(distance_lst, key=lambda r: r[1])
+            new_sides.append(distance_lst[0][0])
+    else:
+        new_sides = found_side_data
+    found_side_data = new_sides
+
+    return found_side_data
 
 
 def graph_data(lst_all, n_data, s_data, e_data, w_data):

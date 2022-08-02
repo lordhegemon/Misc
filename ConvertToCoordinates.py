@@ -15,17 +15,19 @@ import EditAGRCData
 
 
 def turnIntoDB():
+    pd.set_option('display.max_columns', None)
     conn = sqlite3.connect("C:\\Work\\RewriteAPD\\APD_Data.db")
     # df_parsed_utm_latlon = pd.read_excel("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\UTM\\LatLonUTM.xlsx", dtype='object')
     # df_parsed_utm_latlon = pd.read_excel("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\UTM\\GridDataLatLonUTMAligned.xlsx", dtype='object')
     df_parsed_utm_latlon = pd.read_excel("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\UTM\\FinalGridData.xlsx", dtype='object')
+    # print(df_parsed_utm_latlon)
+    # df_parsed_utm_latlon.to_sql("SectionDataCoordinates", conn, if_exists='replace')
+
+    # df_parsed_utm_latlon = pd.read_csv("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\UTM\\CasingStrengths.csv", dtype='object')
+    # df_parsed_utm_latlon.to_sql("CasingStrengths", conn, if_exists='replace')
+
+    df_parsed_utm_latlon = pd.read_csv("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\UTM\\All_Data_Lat_Lon_UTM.csv", dtype='object')
     print(df_parsed_utm_latlon)
-    df_parsed_utm_latlon.to_sql("SectionDataCoordinates", conn, if_exists='replace')
-
-    df_parsed_utm_latlon = pd.read_csv("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\UTM\\CasingStrengths.csv", dtype='object')
-    df_parsed_utm_latlon.to_sql("CasingStrengths", conn, if_exists='replace')
-
-    df_parsed_utm_latlon = pd.read_csv("C:\\Work\\Test scripts\\AnchorPoints\\FinalCoords\\UTM\\PlatGridNumbers.csv", dtype='object')
     df_parsed_utm_latlon.to_sql("GridDataLatLonUTM", conn, if_exists='replace')
 
 
