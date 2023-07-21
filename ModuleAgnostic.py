@@ -92,9 +92,13 @@ def convertAllToStrings(lst):
 def checkListOfListsIdentical(lst1, lst2):
     match_boos = []
     for i in range(len(lst1)):
-        if lst1[i] == lst2[i]:
+        if set(lst1[i]) == set(lst2[i]):
+            # print('True')
             match_boos.append(True)
         else:
+            # print('\nFalse')
+            # for j in range(len(lst1[i])):
+            #     print(lst1[i][j], lst2[i][j])
             match_boos.append(False)
     if False in match_boos:
         return False
@@ -114,6 +118,7 @@ def determineIfInside(pt, data):
 
 
 def cornerGeneratorProcess(data_lengths):
+
     centroid = Polygon(data_lengths).centroid
     centroid = [centroid.x, centroid.y]
     lst_poly = Polygon(data_lengths)
@@ -130,50 +135,7 @@ def cornerGeneratorProcess(data_lengths):
     west_side = data_lengths[:5]
     south_side = data_lengths[12:]
 
-    # # x1, y1 = [k[0] for k in data_lengths], [k[1] for k in data_lengths]
-    # # text = [k[2] for k in data_lengths]
-    # # for i in range(len(data_lengths)):
-    # #     plt.text(x1[i], y1[i], round(text[i], 2))
-    # # x2, y2 = [k[0] for k in data_lengths], [k[1] for k in data_lengths]
-    # # x3, y3 = [k[0] for k in east_side], [k[1] for k in east_side]
-    # # x4, y4 = [k[0] for k in south_side], [k[1] for k in south_side]
-    # # #     ax.plot(x1, y1, c='black')
-    # # ax.plot(x1, y1, c='black')
-    # # plt.scatter(x1, y1, c='red')
-    # # ax.plot(x2, y2, c='red')
-    # # ax.plot(x3, y3, c='blue')
-    # # ax.plot(x4, y4, c='yellow')
-    # # ax.scatter([corners[0][0]], [corners[0][1]], c='black')
-    # # ax.scatter([corners[1][0]], [corners[1][1]], c='red')
-    # # ax.scatter([corners[2][0]], [corners[2][1]], c='blue')
-    # # ax.scatter([corners[3][0]], [corners[3][1]], c='yellow')
-    # # plt.show()
-    # east_side = arrangeDirectionData(corners, data_lengths, 'east', centroid)
-    # north_side = arrangeDirectionData(corners, data_lengths, 'north', centroid)
-    # west_side = arrangeDirectionData(corners, data_lengths, 'west', centroid)
-    # south_side = arrangeDirectionData(corners, data_lengths, 'south', centroid)
     all_data = [west_side] + [north_side] + [east_side] + [south_side]
-    # all_data_new = [tuple(i) for i in west_side] +  [tuple(i) for i in north_side] + [tuple(i) for i in east_side] + [tuple(i) for i in south_side]
-    # print('\nwest', [tuple(i) for i in west_side])
-    # print('\nnorth',[tuple(i) for i in north_side])
-    # print('\neast',[tuple(i) for i in east_side])
-    # print('\nsouth',[tuple(i) for i in south_side])
-    # for i in west_side:
-    #     if i not in all_data:
-    #         all_data.append(i)
-    #
-    # for i in north_side:
-    #     if i not in all_data:
-    #         all_data.append(i)
-    #
-    # for i in east_side:
-    #     if i not in all_data:
-    #         all_data.append(i)
-    #
-    # for i in south_side:
-    #     if i not in all_data:
-    #         all_data.append(i)
-
 
     return corners, all_data
 
@@ -184,15 +146,12 @@ def reorganizeLstPointsWithAngle(lst, centroid):
 
 
 def arrangeDirectionData(corner, lst, label, centroid):
-    # print(label)
-    # print(corner)
+
 
     found_side_data = []
     x_lst, y_lst = [i[0] for i in lst], [i[1] for i in lst]
     if label == 'west':
         xy1, xy2 = corner[0], corner[3]
-        # index1 = x_lst.index(xy1[0])
-        # index2 = x_lst.index(xy2[0])
 
     if label == 'north':
         xy1, xy2 = corner[3], corner[2]
@@ -204,7 +163,6 @@ def arrangeDirectionData(corner, lst, label, centroid):
     index1 = x_lst.index(xy1[0])
     index2 = x_lst.index(xy2[0])
     index2 = len(x_lst) if index2 == 0 else index2
-    # print(index1, index2)
     if index1 < index2:
         found_side_data_foo = lst[index1:index2+1]
     else:
@@ -274,8 +232,9 @@ def flatten(lst):
 def convertToDecimal(data):
     data_converted = []
     for i in range(len(data)):
-        data[i] = data[i][6:12]
-        data[i][1] = float(data[i][1])
+        if len(data[i]) > 6:
+            data[i] = data[i][6:12]
+            data[i][1] = float(data[i][1])
         side, deg, min, sec, dir_val = float(data[i][1]), float(data[i][2]), float(data[i][3]), float(data[i][4]), float(data[i][5])
         dec_val_base = (deg + min / 60 + sec / 3600)
         if 'west' in data[i][0].lower():
@@ -304,29 +263,26 @@ def convertToDecimal(data):
 
 # 1322.71
 def pointsConverter(data):
-    x_pts, y_pts = [], []
     x, y = 0, 0
-    new_data = []
     data = reorderDecimalData(data)
     data = oneToMany(data, 4)
-    # data_test = copy.deepcopy(data)
-    # data_test = [tuple(i) for i in data_test]
-    for i in range(len(data)):
-        x, y = 0, 0
-        x_pts.append([])
-        y_pts.append([])
-        for j in range(len(data[i])):
-            x_pts[i].append(x)
-            y_pts[i].append(y)
-            x, y = pointLineFinder(data[i][j], x, y)
-        x_pts[i].append(x)
-        y_pts[i].append(y)
-    for i in range(len(x_pts)):
-        output = list(zip(x_pts[i], y_pts[i]))
-        output = [list(i) for i in output]
-        new_data.append(output)
-    reassemble(new_data)
+    # for i in range(len(data)):
+    #     x, y = 0, 0
+    #     x_pts.append([])
+    #     y_pts.append([])
+    #     for j in range(len(data[i])):
+    #         x_pts[i].append(x)
+    #         y_pts[i].append(y)
+    #         x, y = pointLineFinder(data[i][j], x, y)
+    #     x_pts[i].append(x)
+    #     y_pts[i].append(y)
+    # for i in range(len(x_pts)):
+    #     output = list(zip(x_pts[i], y_pts[i]))
+    #     output = [list(i) for i in output]
+    #     new_data.append(output)
+    # new_data = list(itertools.chain.from_iterable(new_data))
 
+    output = []
     x_pts, y_pts = [], []
     x, y = 0, 0
     for i in range(len(data)):
@@ -338,7 +294,102 @@ def pointsConverter(data):
     y_pts.append(y)
     output = list(zip(x_pts, y_pts))
     output = [list(i) for i in output]
+
     return output
+
+def convertPtsToSides(pts, tsr_data, conc_data):
+    degrees_lst = []
+    dirLst = [['West-Up2', 'West-Up1', 'West-Down1', 'West-Down2'],
+              ['East-Up2', 'East-Up1', 'East-Down1', 'East-Down2'],
+              ['North-Left2', 'North-Left1', 'North-Right1', 'North-Right2'],
+              ['South-Left2', 'South-Left1', 'South-Right1', 'South-Right2']]
+    pts_west, pts_north, pts_east, pts_south = pts
+    lens_w = angleAndLengths(pts_west)
+    lens_n = angleAndLengths(pts_north)
+    lens_e = angleAndLengths(pts_east)
+    lens_s = angleAndLengths(pts_south[:-1])
+    lens_w = lens_w[::-1]
+    lens_s = lens_s[::-1]
+
+
+
+    tsr_data[2] = translateDirectionToNumber('township', str(tsr_data[2])).upper()
+    tsr_data[4] = translateDirectionToNumber('rng', str(tsr_data[4])).upper()
+    tsr_data[5] = translateDirectionToNumber('baseline', str(tsr_data[5])).upper()
+    tsr_data = [int(float(i)) for i in tsr_data]
+    for i in range(len(lens_w)):
+        degrees = reconvertToDegrees(lens_w[i][1], 'west')
+
+        degrees_lst.append(tsr_data + [dirLst[0][i]] + [lens_w[i][0]] + degrees + ["T"] + [conc_data])
+        # degrees_lst.append(tsr_data + [dirLst[0][i]] + [lens_w[i][0]] + degrees + ["T"] + [conc_data] + [pts[-1][-2]])
+    for i in range(len(lens_e)):
+        degrees = reconvertToDegrees(lens_e[i][1], 'east')
+        # degrees_lst.append(tsr_data + [dirLst[1][i]] + [lens_e[i][0]] + degrees + ["T"] + [conc_data] + [pts[-1][-2]])
+        degrees_lst.append(tsr_data + [dirLst[1][i]] + [lens_e[i][0]] + degrees + ["T"] + [conc_data])
+
+    for i in range(len(lens_n)):
+        degrees = reconvertToDegrees(lens_n[i][1], 'north')
+        # degrees_lst.append(tsr_data + [dirLst[2][i]] + [lens_n[i][0]] + degrees + ["T"] + [conc_data] + [pts[-1][-2]])
+        degrees_lst.append(tsr_data + [dirLst[2][i]] + [lens_n[i][0]] + degrees + ["T"] + [conc_data])
+
+    for i in range(len(lens_s)):
+        degrees = reconvertToDegrees(lens_s[i][1], 'south')
+        # degrees_lst.append(tsr_data + [dirLst[3][i]] + [lens_s[i][0]] + degrees + ["T"] + [conc_data] + [pts[-1][-2]])
+        degrees_lst.append(tsr_data + [dirLst[3][i]] + [lens_s[i][0]] + degrees + ["T"] + [conc_data])
+
+    return degrees_lst
+
+
+def angleAndLengths(lst):
+    alLst = []
+    for i in range(len(lst) - 1):
+        pt1, pt2 = Point(lst[i]), Point(lst[i + 1])
+        angle = (math.degrees(math.atan2(lst[i][1] - lst[i + 1][1], lst[i][0] - lst[i + 1][0])) + 360) % 360
+        d = round(pt1.distance(pt2),2)
+        alLst.append([d, angle])
+    return alLst
+
+def reconvertToDegrees(decVal, data):
+    if data == 'west':
+        decimal_value = abs(decVal - 270)
+        if decVal < 270:
+            dir_val = 3
+        else:
+            dir_val = 4
+        deg_val = convertDecimalToDegrees(decimal_value)
+    if data == 'east':# or data == 'west':
+        decimal_value = abs(90 - decVal)
+        if decVal < 90:
+            dir_val = 3
+        else:
+            dir_val = 4
+        deg_val = convertDecimalToDegrees(decimal_value)
+    if data == 'north':# or data == 'south':
+        if decVal < 180:
+            decimal_value = abs(90 - decVal)
+            dir_val = 4
+        else:
+            decimal_value = 90 - abs(180 - decVal)
+            dir_val = 3
+        deg_val = convertDecimalToDegrees(decimal_value)
+    if data == 'south':
+        data_360 = math.isclose(360, decVal, abs_tol=50)
+        data_0 = math.isclose(0, decVal, abs_tol=50)
+        if data_360 and not data_0:
+            decimal_value = abs(decVal - 270)
+            dir_val = 4
+        if not data_360 and data_0:
+            decimal_value = abs(90-decVal)
+            dir_val = 3
+        deg_val = convertDecimalToDegrees(decimal_value)
+    return list(deg_val) + [dir_val]
+
+def changeAngles(label, angle, found_side_data):
+    if label.lower() == 'west':
+        if 360 > angle > 220:
+            pass
+        elif 150 > angle > 50:
+            pass
 
 
 def reassemble(lst):
@@ -347,13 +398,7 @@ def reassemble(lst):
     n_lst = [tuple(i) for i in n_lst]
     e_lst = [tuple(i) for i in e_lst]
     s_lst = [tuple(i) for i in s_lst]
-    # print(w_lst)
-    # print(n_lst)
-    # print(e_lst)
-    # print(s_lst)
-    #
-    #
-    # print()
+
     west_north_connector_pt = w_lst[-1]
     n_lst = [[i[0] + west_north_connector_pt[0], i[1] + west_north_connector_pt[1]] for i in n_lst]
     west_south_connector_pt = s_lst[-1]
@@ -366,10 +411,6 @@ def reassemble(lst):
     n_lst = [tuple(i) for i in n_lst]
     e_lst = [tuple(i) for i in e_lst]
     s_lst = [tuple(i) for i in s_lst]
-    # print(w_lst)
-    # print(n_lst)
-    # print(e_lst)
-    # print(s_lst)
 
 
 def pointLineFinder(i, x, y):
@@ -383,6 +424,10 @@ def pointLineFinder(i, x, y):
 def reorderDecimalData(data):
     return [data[3], data[2], data[1], data[0], data[8], data[9], data[10], data[11], data[4], data[5], data[6], data[7], data[15], data[14], data[13], data[12]]
     # return [data[0], data[1], data[2], data[3], data[8], data[9], data[10], data[11], data[4], data[5], data[6], data[7], data[15], data[14], data[13], data[12]]
+
+
+def convertFromPointsToRelativeSides(lst):
+    corners, all_data = cornerGeneratorProcess(lst)
 
 
 # def checkIfTwoListOfListsAreIdentical(lst1, lst2):
@@ -424,7 +469,7 @@ def convertSetsToList(lst):
         elif isinstance(lst[i], list):
             convertSetsToList(lst[i])
         elif not isinstance(lst[i], list) and not isinstance(lst[i], set):
-            print([lst[i]])
+            # print([lst[i]])
             pass
     return lst
 
@@ -540,6 +585,40 @@ def slopeFinder(p1, p2):
     return slopeVal, yIntercept
 
 
+def translateDirectionToNumber(variable, val):
+    if variable == 'rng':
+        if val == 'W':
+            return '2'
+        elif val == 'E':
+            return '1'
+        else:
+            return val
+    elif variable == 'township':
+        if val == 'S':
+            return '2'
+        elif val == 'N':
+            return '1'
+        else:
+            return val
+    elif variable == 'baseline':
+        if val == 'U':
+            return '2'
+        elif val == 'S':
+            return '1'
+        else:
+            return val
+    elif variable == 'alignment':
+        if val == 'SE':
+            return '1'
+        elif val == 'NE':
+            return '2'
+        elif val == 'SW':
+            return '3'
+        elif val == 'NW':
+            return '4'
+        else:
+            return val
+    return val
 
 def azimuthToBearing(azi_val):
     if 90 > azi_val > 0:
@@ -569,7 +648,6 @@ def azimuthToBearing(azi_val):
     #     dir_val = 4
     # bearing = abs(bearing - 90)
 
-    # print('val', bearing, dir_val)
 
     return bearing, dir_val
 
@@ -714,6 +792,56 @@ def grouper(iterable, val):
     if group:
         yield group
 
+def grouper2(iterable, val):
+    groups = []
+    current_group = []
+    for item in iterable:
+        if current_group and item - current_group[-1] > val:
+            groups.append(current_group)
+            current_group = []
+        current_group.append(item)
+    if current_group:
+        groups.append(current_group)
+    return groups
+
+def grouper3(iterable, val):
+    groups = []
+    current_group = []
+    indices = []
+    current_indices = []
+    prev_item = None
+    for i, item in enumerate(iterable):
+        if prev_item is not None and item - prev_item > val:
+        #if current_group and item - current_group[-1] > val:
+            if current_group:
+                    groups.append(current_group)
+                    indices.append(current_indices)
+            current_group = []
+            current_indices = []
+        current_group.append(item)
+        current_indices.append(i)
+        prev_item = item
+    if current_group:
+        groups.append(current_group)
+        indices.append(current_indices)
+    return groups, indices
+
+
+# def grouper3(iterable, threshold):
+#     group = []
+#     indices = []
+#     for i, item in enumerate(iterable):
+#         if not group or item - group[-1] <= threshold:
+#             group.append(item)
+#             indices.append(i)
+#         else:
+#             yield group, indices
+#             group = [item]
+#             indices = [i]
+#     if group:
+#         yield group, indices
+
+
 
 def polyfit(x, degree):
     y = list(range(len(x)))
@@ -738,9 +866,9 @@ def polyfit(x, degree):
 
 def reTranslateData(i):
     conc_code_merged = i[:6]
-    conc_code_merged[2] = translateNumberToDirection('township', str(conc_code_merged[2]))
-    conc_code_merged[4] = translateNumberToDirection('rng', str(conc_code_merged[4]))
-    conc_code_merged[5] = translateNumberToDirection('baseline', str(conc_code_merged[5]))
+    conc_code_merged[2] = translateNumberToDirection('township', str(conc_code_merged[2])).upper()
+    conc_code_merged[4] = translateNumberToDirection('rng', str(conc_code_merged[4])).upper()
+    conc_code_merged[5] = translateNumberToDirection('baseline', str(conc_code_merged[5])).upper()
     conc_code = [str(r) for r in conc_code_merged]
     len_lst = [len(r) for r in conc_code]
     if len_lst[0] == 1:
