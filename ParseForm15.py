@@ -35,7 +35,6 @@ def mainParserProcess():
     # print(new_path)
     dfs = tabula.read_pdf(file_path, pages='all', pandas_options={'header': None})
     search_string = "R&M Labor"
-    # print(dfs[0])
     dataframes = []
     counter = 0
     # findFirstPageTable(dfs[0])
@@ -46,14 +45,7 @@ def mainParserProcess():
         # print(len(columns))
         for j in columns:
             try:
-                # pass
-                # print(x)
-                # print("j", j)
-
                 test = database[j].to_numpy().tolist()
-                # for i in test:
-                #     print([i])
-                # ma.printLine(database[j].to_numpy().tolist())
                 if j == 'Lease & Rental Equipment':
                     print(database[j])
                     print([database[j][7]] == ["R&M Labor"])
