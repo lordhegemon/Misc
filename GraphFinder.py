@@ -22,55 +22,71 @@ import tabula
 import random
 import ModuleAgnostic as ma
 import matplotlib.pyplot as plt
+import pandas as pd
 import statistics as st
 from scipy.spatial import cKDTree
 import geopandas as gpd
 import libpysal as lp
 from esda.moran import Moran
 from scipy.interpolate import griddata
-
+import warnings
 
 def mainProcess():
-    # new_path = r'C:\Work\OldSurveyParser\application_4301950033 - Copy.pdf'
-    new_path = r'C:\Work\OldSurveyParser\application_4301950033.pdf'
+    warnings.filterwarnings("ignore", category=UserWarning)
+    new_path = r'C:\Work\OldSurveyParser\application_4301950033 - Copy.pdf'
+    # new_path = r'C:\Work\OldSurveyParser\application_4301950033.pdf'
     key_words = ['tvd', 'md', 'inc', 'inclination', 'azi', 'azimuth', 'measured depth', 'dls']
     output = textBoxGather(new_path)
+    # print(len(output))
     pages_data = [i for i in output if i]
+
     pages = testRandomness(pages_data)
 
+    width_count = 0
     num_pages = 10
     num_entries = 500
     min_linear_length = 10
 
     # pages_data = generate_page_data(num_pages, num_entries)
     pages_data = [pages_data[i] for i in range(len(pages_data)) if i in pages]
+    for i in pages_data:
+        ma.printLine(i)
     # for i in range(len(pages_data)):
     #     if i in pages:
-    #         pages_data[i]
+    #         print(pages_data[i])
 
     linear_patterns_columns = count_linear_patterns_columns(pages_data, min_linear_length)  # find areas with consistent x values
-    linear_patterns_rows = count_linear_patterns_rows(pages_data, min_linear_length)  # find areas with consistent y values
-    # print(len(linear_patterns_columns), len(linear_patterns_rows))
+    linear_patterns_rows, df_rows = count_linear_patterns_rows(pages_data, min_linear_length)  # find areas with consistent y values
+    filtered_df = df_rows[df_rows['Label'].isin(key_words)]
+    filtered_list = list(filtered_df['Label'])
+    # ma.printLine(linear_patterns_rows)
+    # print('filtered', filtered_list)
     for i in linear_patterns_rows:
+        # print()
         for j in i:
             txt_data = [r[-1].lower() for r in j[-1]]
+            # print(txt_data)
             filtered_list = list(set([item for item in key_words if item in txt_data]))
+            # print(filtered_list)
             if len(filtered_list) > 3:
                 width_count = len(txt_data)
+                print('count', width_count)
+    # print(width_count)
+    count = ((df_rows['Row'] == 1) & (df_rows['Page'] == 0)).sum()
 
-    linear_patterns_rows = [[j for j in i if width_count + 1 >= len(j[1]) >= width_count - 1] for i in linear_patterns_rows]
-    linear_pattern_pages = [[j[0] for j in i] for i in linear_patterns_rows]
-    linear_patterns_rows = [[j[1] for j in i] for i in linear_patterns_rows]
-    linear_patterns_rows = [sorted(i, key=lambda row: row[0][1], reverse=True) for i in linear_patterns_rows]
-    linear_patterns_rows = [[[linear_pattern_pages[i][j], linear_patterns_rows[i][j]] for j in range(len(linear_pattern_pages[i]))] for i in range(len(linear_pattern_pages))]
-    avg_height = findWidthHeight(linear_patterns_rows, 'row')
-    avg_width = findWidthHeight(linear_patterns_columns, 'col')
-    print('width', avg_width)
-    interpolationProcess(linear_patterns_rows, width_count, avg_height, avg_width)
+    # count = df_rows['Row'].value_counts().get(1, 0)
+    if width_count > 0:
+        linear_patterns_rows = [[j for j in i if width_count + 1 >= len(j[1]) >= width_count - 1] for i in linear_patterns_rows]
+        linear_pattern_pages = [[j[0] for j in i] for i in linear_patterns_rows]
+        linear_patterns_rows = [[j[1] for j in i] for i in linear_patterns_rows]
+        linear_patterns_rows = [sorted(i, key=lambda row: row[0][1], reverse=True) for i in linear_patterns_rows]
+        linear_patterns_rows = [[[linear_pattern_pages[i][j], linear_patterns_rows[i][j]] for j in range(len(linear_pattern_pages[i]))] for i in range(len(linear_pattern_pages))]
+        avg_height = findWidthHeight(linear_patterns_rows, 'row')
+        avg_width = findWidthHeight(linear_patterns_columns, 'col')
+        interpolationProcess(linear_patterns_rows, width_count, avg_height, avg_width)
 
     # for i in range(len(linear_pattern_pages)):
     #     for j in range(len(linear_pattern_pages[i])):
-    #         print(linear_pattern_pages[i][j], linear_patterns_rows[i][j])
     # for i in range(len(linear_patterns_rows)):
     #     for j in range(len(linear_patterns_rows[i])):
     #         line = linear_patterns_rows[i][j]
@@ -80,15 +96,11 @@ def mainProcess():
     # if not width_count + 1 >= len(txt_data) >= width_count - 1:
     #     linear_patterns_rows[i][j] = []
     # occurrences = {item: filtered_list.count(item) for item in txt_data}
-    # print(occurrences)
-    # for k in j:
-    #             print(k)
+
 
     # findConsistentRowGrids(linear_patterns_x)
     # findRowGridGrouping(linear_patterns_columns)
     # findConsistentVerticalPatterns(linear_patterns_rows)
-    # print(f"Number of pages with a linear pattern of {min_linear_length} or more values: {linear_patterns_x}/{num_pages}")
-    # print(f"Number of pages with a linear pattern of {min_linear_length} or more values: {linear_patterns_y}/{num_pages}")
 
     pass
 
@@ -104,45 +116,37 @@ def checkIfFloat(element):
             float_val = float(element)
             return True
         except ValueError:
-            print(element)
             return False
     else:
-        print(element)
         return False
 
 def interpolationProcess(pages_data, width_length, avg_height, avg_width):
     # pages_data = [sorted(i, key=lambda row: row[0][1], reverse=True) for i in pages_data]
     for r, page in enumerate(pages_data):
+        print('page', r)
         # page = [[j for j in i[1] if checkIfFloat(j[-1])] for i in page]
         # page = [[j for j in i[1] if (j[-1].replace('.', '', 1).isdigit() or (j[-1][0] == '-' and j[-1][1:].replace('.', '', 1).isdigit()))] for i in page]
         page = [[r, [j for j in i[1] if checkIfFloat(j[-1])]] for i in page]
-        for i in page:
-            ma.printLine(i[1])
+        page = [i for i in page if i[1]]
+        # for i in page:
+        #     if not i[1]:
+        #         print('foo')
+        # page = [i for i in page]
+        ma.printLine(page)
 
         # new_data = []
         # for i in page:
-        #     print(i)
         #     new_data.append([r, []])
         #     for j in i[1]:
         #         if checkIfFloat(j[-1]):
-        #             print(j[-1])
         #             new_data[-1][-1].extend([j])
-                    # print(new_data[-1][-1])
-                    # pass
-        #         print(j[-1], j[-1][0], j[-1][1:])
 
-        #         if float(j[-1]):
-        #             print(foo)
-        #         print(j)
-        # ma.printLine(page)
         length_columns = 0
         prev_length_columns = 0
         xy_pts = [[k[:2] for k in i[1]] for i in page]
         xy_pts_text = [[k for k in i[1]] for i in page]
-        # print(xy_pts)
         x_start = xy_pts[-1][0][0]
         y_start = xy_pts[-1][0][1]
-        # print(x_start, y_start)
         xy_pts = np.array(list(itertools.chain.from_iterable(xy_pts)))
 
 
@@ -159,9 +163,7 @@ def interpolationProcess(pages_data, width_length, avg_height, avg_width):
             known_values = np.arange(width * height).reshape((height, width))
             if len(grid_points) > 0:
                 output, missing_points = findProximalPoints(grid_points, xy_pts, avg_width)
-                # print(len(output), prev_length_columns, length_columns)
                 if prev_length_columns == len(output):
-                    print("____________________________________________________")
                     height = i-2
                     grid_x, grid_y = np.meshgrid(np.arange(x_start, x_start + width * delta_x, delta_x),
                                                  np.arange(y_start, y_start + height * delta_y, delta_y))
@@ -172,7 +174,6 @@ def interpolationProcess(pages_data, width_length, avg_height, avg_width):
                 # else:
                 prev_length_columns = length_columns
                 length_columns = len(output)
-                # ma.printLine(known_values)
 
 
 
@@ -189,26 +190,23 @@ def interpolationProcess(pages_data, width_length, avg_height, avg_width):
         all_points = np.vstack((grid_points, missing_points))
         # Performing interpolation to estimate values at the missing points
         # interpolated_values = griddata(grid_points, known_values.ravel(), missing_points, method='linear')
-        plt.scatter(grid_points[:, 0], grid_points[:, 1], c='b', marker='o', label='Known Points')
-        plt.scatter(missing_points[:, 0], missing_points[:, 1], c='r', marker='x', label='Missing Points')
-        plt.scatter(output[:, 0], output[:, 1], c='g', marker='*', label='O Points')
-        # plt.text(output[:, 0], output[:, 1], output[:, 2])
-        for i in xy_pts_text:
-            for j in i:
-                plt.text(j[0], j[1], j[2])
-                # print(j)
-            # print(i)
-            # plt.text(i[0], i[1], i[2])
-        plt.xlabel('X')
-        plt.ylabel('Y')
-        plt.legend()
-        plt.grid()
-        plt.title('Grid with Missing Points')
-        plt.show()
+        # plt.scatter(grid_points[:, 0], grid_points[:, 1], c='b', marker='o', label='Known Points')
+        # plt.scatter(missing_points[:, 0], missing_points[:, 1], c='r', marker='x', label='Missing Points')
+        # plt.scatter(output[:, 0], output[:, 1], c='g', marker='*', label='O Points')
+        # # plt.text(output[:, 0], output[:, 1], output[:, 2])
+        # for i in xy_pts_text:
+        #     for j in i:
+        #         plt.text(j[0], j[1], j[2])
+        #
+        # plt.xlabel('X')
+        # plt.ylabel('Y')
+        # plt.legend()
+        # plt.grid()
+        # plt.title('Grid with Missing Points')
+        # plt.show()
 
 
 def findProximalPoints(theory_lst, actual_lst, threshold_x):
-    # print(threshold_x)
     # Set the threshold value
     threshold_x = 5
     threshold_y = 5
@@ -273,13 +271,18 @@ def testRandomness(pages_data):
 
         # Calculate spatial autocorrelation using Moran's I
         moran = Moran(data['ID'], W)
+        # print(r)
+        # ma.printLine(page)
         if moran.I > 0.9:
+            # print(page)
             new_data.append(r)
             # print("Spatial Autocorrelation Statistics:")
             # print("Moran's I:", moran.I)
             # print("Expected Moran's I:", moran.EI)
             # print("Z-Score:", moran.z_norm)
             # print("P-Value:", moran.p_norm)
+        # else:
+            # ma.printLine(page)
     return new_data
 
 
@@ -310,6 +313,7 @@ def count_linear_patterns_columns(pages_data, min_linear_length):
 
 def count_linear_patterns_rows(pages_data, min_linear_length):
     all_pages = []
+    all_dataframe = []
     for r, page in enumerate(pages_data):
         y_bounds = [(text_box[1] + text_box[3]) / 2 for text_box in page]
         sorted_lst = sorted(enumerate(y_bounds), key=lambda x: x[1])
@@ -325,9 +329,16 @@ def count_linear_patterns_rows(pages_data, min_linear_length):
             xy_pts = [[[j[0], j[1]] for j in i] for i in xy_sorted_groups]
             xy_text = [[j[-1] for j in i] for i in xy_sorted_groups]
             # grapherSeveralWithText(xy_pts, xy_text)
+            for i, data_i in enumerate(xy_pts):
+                for j, data_j in enumerate(data_i):
+                    all_dataframe.append([r, i+1] + data_j + sorted_groups[i][j])
             xy_sorted_groups = [[r, i] for i in xy_sorted_groups]
             all_pages.append(xy_sorted_groups)
-    return all_pages
+
+    df_test = [{'Page': i[0], 'Row': i[1], 'X': i[2], 'Y': int(float(i[3])),
+                'X_left': i[4], 'X_right': i[6], 'Y_down': float(i[5]), 'Y_up': float(i[7]), 'Label': i[8].lower()} for i in all_dataframe]
+    df = pd.DataFrame(df_test, columns=['Page', 'Row', 'X', 'Y', 'X_left', 'X_right', 'Y_down', 'Y_up', 'Label'])
+    return all_pages, df
 
 
 def findConsistentRowGrids(data):
@@ -353,22 +364,18 @@ def findWidthHeight(lst, label):
 
 
 def findRowGridGrouping(hor_lst):
-    # ma.printFunctionName()
     for i, data in enumerate(hor_lst):
         gaps_lst = [np.mean(np.diff(sorted([sublist[1] for sublist in j[1]]))) for j in data]
 
         # for j in data:
         #     second_column = sorted([sublist[1] for sublist in j[1]])
-        #     # print(second_column)
         #     gaps = np.diff(second_column).tolist()
-        #     print(gaps)
         #     gaps_lst.append(st.mean(gaps))
         # gaps_lst_mean = np.mean(select_within_one_std_deviation(gaps_lst))
         #
         if len(gaps_lst) > 1:
             gaps_lst_mean = np.mean(select_within_one_std_deviation(gaps_lst))
-            # print(i)
-            # print(gaps_lst_mean)
+
         # for j in data:
         #     filtered_data_new = []
         #     second_column = sorted([sublist[1] for sublist in j[1]])
@@ -377,12 +384,10 @@ def findRowGridGrouping(hor_lst):
         #     for k in j[1]:
         #         if k[1] in filtered_data:
         #             filtered_data_new.append(k)
-        #     # print([j[0], filtered_data_new])
         #     # filter_lists_by_data(j[1], filtered_data)
         #
         #     # for val in j[1]:
         #     #     lst_data = [item[0] for item in val]
-        #     #     print(lst_data)
         #
         #
         #     #
@@ -390,10 +395,8 @@ def findRowGridGrouping(hor_lst):
         #     #     if abs(diff) <= gaps_lst_mean + 1:
         #     #         filtered_data.append(second_column[r+1])
         #
-        #     # print(filtered_data)
         #
         #     # min_val, max_val = min(second_column), max(second_column)
-        #     # print(round(abs(max_val - min_val),0))
         #     # lengths.append(round(abs(max_val - min_val),0))
         #
 
@@ -416,18 +419,11 @@ def filter_lists_by_data(original_lists, filtered_data):
 
 def findConsistentVerticalPatterns(vert_lst):
     for i, data in enumerate(vert_lst):
-        # print(i)
         lengths = []
         for j in data:
-            # print(j)
             second_column = [sublist[0] for sublist in j[1]]
-            # print(len(second_column))
             min_val, max_val = min(second_column), max(second_column)
-            # print(round(abs(max_val - min_val),0))
             lengths.append(round(abs(max_val - min_val), 0))
-            # # print(min_val, max_val)
-        # print(lengths)
-
 
 def remove_outliers(data):
     # Calculate the first quartile (Q1) and the third quartile (Q3)
